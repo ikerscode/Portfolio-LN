@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://raw.githubusercontent.com; connect-src 'self' https://raw.githubusercontent.com; object-src 'none'; base-uri 'self'; form-action 'self';" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self';" />
 <title>Liam Nichele | Defence &amp; National Security Software</title>
 <meta name="description" content="Liam Nichele: Software Engineer / Computer Scientist / Systems Architect. Defence and national security software." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -15,18 +15,50 @@
     --blue:#5B8AD1; --blue-bright:#A9C6F0; --ice:#7FA8DE;
     --panel:rgba(12,17,26,.55); --line:rgba(91,138,209,.28);
     --body:#AAB3C0; --dim:#5B6B80; --on-blue:#07101C; --track:#1C222C;
+    --ink:rgba(127,168,222,.9); --ink-dim:rgba(91,138,209,.45); --ink-faint:rgba(91,138,209,.22);
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html{scroll-behavior:smooth;}
   body{background:var(--bg);color:var(--text);font-family:'Montserrat',sans-serif;overflow-x:hidden;}
 
-  /* fixed 3D layer */
-  #gl{position:fixed;inset:0;z-index:0;}
-  canvas#scene{position:absolute;inset:0;display:block;}
+  /* fixed engineering-drawing layer (replaces the 3D scene) */
+  #sheet{position:fixed;inset:0;z-index:0;overflow:hidden;
+    background:
+      radial-gradient(ellipse at 50% 30%,rgba(91,138,209,.06),transparent 60%),
+      var(--bg);}
+  #sheet svg{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  #sheet text{font-family:'Montserrat',sans-serif;}
   .vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
     background:radial-gradient(ellipse at 50% 45%,transparent 42%,rgba(7,11,18,.72) 100%);}
   .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.045;mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+  /* drawing linework */
+  .dwg-line{stroke:var(--ink);stroke-width:1.4;fill:none;vector-effect:non-scaling-stroke;}
+  .dwg-thin{stroke:var(--ink-dim);stroke-width:1;fill:none;vector-effect:non-scaling-stroke;}
+  .dwg-faint{stroke:var(--ink-faint);stroke-width:1;fill:none;vector-effect:non-scaling-stroke;}
+  .dwg-center{stroke:var(--ink-dim);stroke-width:1;fill:none;stroke-dasharray:22 6 4 6;vector-effect:non-scaling-stroke;}
+  .dwg-dim{stroke:var(--ink-dim);stroke-width:1;fill:none;vector-effect:non-scaling-stroke;}
+  .dwg-fill{fill:rgba(91,138,209,.05);}
+  .dwg-fill-dark{fill:rgba(14,20,32,.7);}
+  .dwg-glass{fill:rgba(4,6,11,.9);}
+  .t-label{fill:var(--ink);font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
+  .t-dim{fill:var(--ink-dim);font-weight:600;letter-spacing:.08em;}
+  .t-block{fill:var(--muted);font-weight:600;letter-spacing:.14em;text-transform:uppercase;}
+  .t-block-b{fill:var(--blue-bright);font-weight:800;letter-spacing:.14em;text-transform:uppercase;}
+
+  /* datasheet callouts drawn on the sheet — same labels & data as the original */
+  .callout .co-line{stroke:var(--blue);stroke-width:1;vector-effect:non-scaling-stroke;}
+  .callout .co-dot{fill:var(--blue-bright);}
+  .callout .co-box{fill:rgba(12,17,26,.78);stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke;}
+  .callout .co-obj{fill:var(--muted);font-size:8.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;}
+  .callout .co-title{fill:var(--blue);font-size:10.5px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;}
+  .callout .co-rule{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke;}
+  .callout .co-k{fill:var(--muted);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+  .callout .co-v{fill:var(--blue-bright);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+  .callout{opacity:.28;transition:opacity .5s ease;}
+  .callout.on{opacity:1;}
+  @media (prefers-reduced-motion:reduce){.callout{transition:none;}}
 
   /* fixed chrome */
   header{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;justify-content:space-between;
@@ -87,7 +119,8 @@
   /* hero identity */
   .identity{max-width:min(92vw,780px);}
   .eyebrow{font-family:'Montserrat',sans-serif;font-weight:600;font-size:11px;letter-spacing:3px;color:var(--muted);
-    text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:10px;opacity:0;}
+    text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:10px;opacity:0;transition:opacity .6s ease;}
+  .eyebrow.in{opacity:1;}
   .eyebrow .dot{width:6px;height:6px;background:var(--blue);border-radius:50%;box-shadow:0 0 12px var(--blue);
     animation:pulse 2.4s ease-in-out infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.2;}}
@@ -96,11 +129,17 @@
   h1.name .word{display:inline-block;white-space:nowrap;}
   h1.name .word+.word{margin-left:.24em;}
   h1.name .char{display:inline-block;opacity:0;filter:blur(9px);transform:translateY(18px);
+    transition:opacity .7s cubic-bezier(.16,1,.3,1),filter .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1);
     will-change:transform,filter,opacity;}
+  h1.name .char.in{opacity:1;filter:blur(0);transform:translateY(0);}
   .role{margin-top:22px;font-family:'Montserrat',sans-serif;font-weight:600;font-size:clamp(11px,1.6vw,14px);
-    letter-spacing:1px;color:var(--muted);text-transform:uppercase;opacity:0;transform:translateY(10px);}
+    letter-spacing:1px;color:var(--muted);text-transform:uppercase;opacity:0;transform:translateY(10px);
+    transition:opacity .6s ease,transform .6s ease;}
+  .role.in{opacity:1;transform:translateY(0);}
   .cue{margin-top:40px;font-family:'Montserrat',sans-serif;font-weight:600;font-size:11px;letter-spacing:2px;
-    color:var(--muted);text-transform:uppercase;opacity:0;display:flex;align-items:center;gap:10px;}
+    color:var(--muted);text-transform:uppercase;opacity:0;display:flex;align-items:center;gap:10px;
+    transition:opacity .6s ease;}
+  .cue.in{opacity:.7;}
   .cue svg{animation:bob 1.8s ease-in-out infinite;}
   @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(5px);}}
 
@@ -114,7 +153,8 @@
     transition:opacity .6s ease;}
   .loader .lbl{font-family:'Montserrat',sans-serif;font-weight:600;font-size:12px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;}
   .loader .track{width:180px;height:1px;background:var(--track);margin-top:16px;overflow:hidden;}
-  .loader .fill{height:100%;width:0;background:var(--blue);}
+  .loader .fill{height:100%;width:0;background:var(--blue);transition:width 1.1s ease-in-out;}
+  .loader .fill.go{width:100%;}
 
   /* case study */
   .panel.wide{max-width:640px;}
@@ -144,28 +184,8 @@
     opacity:0;transition:opacity .8s ease;text-align:right;pointer-events:none;}
   .tele b{color:var(--blue-bright);font-weight:600;}
 
-  #specLine{position:fixed;inset:0;width:100%;height:100%;z-index:5;pointer-events:none;overflow:visible;}
-  #specLine line{stroke:var(--blue);stroke-width:1;opacity:0;transition:opacity .5s ease;}
-  #specLine line.on{opacity:.55;}
-  #specLine circle{fill:var(--blue-bright);opacity:0;transition:opacity .5s ease;}
-  #specLine circle.on{opacity:.9;}
-  .spec-panel{position:fixed;z-index:5;pointer-events:none;background:rgba(12,17,26,.66);
-    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);
-    padding:11px 15px;opacity:0;transition:opacity .5s ease;min-width:168px;}
-  .spec-panel.on{opacity:1;}
-  .spec-panel .spec-obj{font-family:'Montserrat',sans-serif;font-weight:600;font-size:8.5px;
-    letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:2px;}
-  .spec-panel .spec-title{font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;
-    letter-spacing:1.5px;color:var(--blue);text-transform:uppercase;margin-bottom:7px;
-    padding-bottom:7px;border-bottom:1px solid var(--line);}
-  .spec-row{display:flex;justify-content:space-between;gap:18px;font-family:'Montserrat',sans-serif;
-    font-weight:600;font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;padding:3px 0;
-    white-space:nowrap;}
-  .spec-row .k{color:var(--muted);}
-  .spec-row .v{color:var(--blue-bright);}
-
-  @media (max-width:1150px){
-    .tele,#specLine,.spec-panel{display:none;}
+  @media (max-width:900px){
+    .tele{display:none;}
   }
 
   @media (max-width:640px){
@@ -198,11 +218,339 @@
 
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto;} .eyebrow .dot,.cue svg{animation:none;}
+    .panel,h1.name .char,.role,.eyebrow,.cue{transition:none;}
   }
 </style>
 </head>
 <body>
-<div id="gl"><canvas id="scene"></canvas></div>
+
+<!-- ======================================================================
+     ENGINEERING DRAWING LAYER — Sentinel-2 general-arrangement sheet.
+     Replaces the WebGL scene. One inline SVG; the #rig group is panned and
+     zoomed by scroll, focusing the sub-component each section discusses,
+     exactly as the 3D camera keyframes did. Callout data is unchanged from
+     the original (verified public specs: ESA / eoPortal / SentiWiki).
+     ====================================================================== -->
+<div id="sheet" aria-hidden="true">
+<svg id="dwg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="gridS" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M20 0H0V20" fill="none" stroke="rgba(91,138,209,.06)" stroke-width="1"/>
+    </pattern>
+    <pattern id="gridL" width="100" height="100" patternUnits="userSpaceOnUse">
+      <path d="M100 0H0V100" fill="none" stroke="rgba(91,138,209,.11)" stroke-width="1"/>
+    </pattern>
+    <pattern id="mli" width="22" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 22 22 0M-6 6 6 -6M16 28 28 16" stroke="rgba(91,138,209,.20)" stroke-width="1" fill="none"/>
+      <path d="M0 0 22 22M-6 16 6 28M16 -6 28 6" stroke="rgba(91,138,209,.12)" stroke-width="1" fill="none"/>
+    </pattern>
+    <pattern id="cells" width="24.4" height="25" patternUnits="userSpaceOnUse">
+      <rect x="1.5" y="1.5" width="21.4" height="22" fill="rgba(22,48,94,.35)" stroke="rgba(120,150,210,.35)" stroke-width="1"/>
+    </pattern>
+    <pattern id="hatch45" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 9 9 0" stroke="rgba(91,138,209,.4)" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <g id="rig">
+    <!-- ============ sheet frame ============ -->
+    <rect x="20" y="20" width="1560" height="960" fill="url(#gridS)"/>
+    <rect x="20" y="20" width="1560" height="960" fill="url(#gridL)"/>
+    <rect x="20" y="20" width="1560" height="960" class="dwg-thin"/>
+    <rect x="44" y="44" width="1512" height="912" class="dwg-line"/>
+    <!-- border zone ticks + coordinates -->
+    <g class="t-dim" font-size="12">
+      <line x1="410" y1="20" x2="410" y2="44" class="dwg-thin"/><line x1="800" y1="20" x2="800" y2="44" class="dwg-thin"/><line x1="1190" y1="20" x2="1190" y2="44" class="dwg-thin"/>
+      <line x1="410" y1="956" x2="410" y2="980" class="dwg-thin"/><line x1="800" y1="956" x2="800" y2="980" class="dwg-thin"/><line x1="1190" y1="956" x2="1190" y2="980" class="dwg-thin"/>
+      <line x1="20" y1="272" x2="44" y2="272" class="dwg-thin"/><line x1="20" y1="500" x2="44" y2="500" class="dwg-thin"/><line x1="20" y1="728" x2="44" y2="728" class="dwg-thin"/>
+      <line x1="1556" y1="272" x2="1580" y2="272" class="dwg-thin"/><line x1="1556" y1="500" x2="1580" y2="500" class="dwg-thin"/><line x1="1556" y1="728" x2="1580" y2="728" class="dwg-thin"/>
+      <text x="212" y="37" text-anchor="middle">4</text><text x="605" y="37" text-anchor="middle">3</text><text x="995" y="37" text-anchor="middle">2</text><text x="1385" y="37" text-anchor="middle">1</text>
+      <text x="212" y="973" text-anchor="middle">4</text><text x="605" y="973" text-anchor="middle">3</text><text x="995" y="973" text-anchor="middle">2</text><text x="1385" y="973" text-anchor="middle">1</text>
+      <text x="32" y="150" text-anchor="middle">D</text><text x="32" y="390" text-anchor="middle">C</text><text x="32" y="618" text-anchor="middle">B</text><text x="32" y="850" text-anchor="middle">A</text>
+      <text x="1568" y="150" text-anchor="middle">D</text><text x="1568" y="390" text-anchor="middle">C</text><text x="1568" y="618" text-anchor="middle">B</text><text x="1568" y="850" text-anchor="middle">A</text>
+    </g>
+
+    <!-- ============ title block (bottom-right) ============ -->
+    <g>
+      <rect x="1096" y="836" width="460" height="120" class="dwg-line dwg-fill-dark"/>
+      <line x1="1096" y1="876" x2="1556" y2="876" class="dwg-thin"/>
+      <line x1="1096" y1="916" x2="1556" y2="916" class="dwg-thin"/>
+      <line x1="1316" y1="876" x2="1316" y2="956" class="dwg-thin"/>
+      <line x1="1436" y1="876" x2="1436" y2="956" class="dwg-thin"/>
+      <text x="1116" y="862" class="t-block-b" font-size="15">Sentinel-2 · Multispectral Imaging Mission</text>
+      <text x="1116" y="896" class="t-block" font-size="9">Title</text>
+      <text x="1116" y="909" class="t-block" font-size="10.5" fill="#A9C6F0">General Arrangement — Deployed</text>
+      <text x="1336" y="896" class="t-block" font-size="9">Dwg No</text>
+      <text x="1336" y="909" class="t-block" font-size="10.5" fill="#A9C6F0">S2-GA-001</text>
+      <text x="1456" y="896" class="t-block" font-size="9">Rev</text>
+      <text x="1456" y="909" class="t-block" font-size="10.5" fill="#A9C6F0">C</text>
+      <text x="1116" y="936" class="t-block" font-size="9">Drawn</text>
+      <text x="1116" y="949" class="t-block" font-size="10.5" fill="#A9C6F0">L.Nichele</text>
+      <text x="1336" y="936" class="t-block" font-size="9">Scale</text>
+      <text x="1336" y="949" class="t-block" font-size="10.5" fill="#A9C6F0">1 : 50</text>
+      <text x="1456" y="936" class="t-block" font-size="9">Sheet</text>
+      <text x="1456" y="949" class="t-block" font-size="10.5" fill="#A9C6F0">1 / 1</text>
+    </g>
+
+    <!-- ============ revision table (top-right) ============ -->
+    <g>
+      <rect x="1276" y="64" width="280" height="78" class="dwg-thin dwg-fill-dark"/>
+      <line x1="1276" y1="86" x2="1556" y2="86" class="dwg-thin"/>
+      <line x1="1312" y1="64" x2="1312" y2="142" class="dwg-thin"/>
+      <line x1="1470" y1="64" x2="1470" y2="142" class="dwg-thin"/>
+      <text x="1294" y="79" text-anchor="middle" class="t-block" font-size="9">Rev</text>
+      <text x="1391" y="79" text-anchor="middle" class="t-block" font-size="9">Description</text>
+      <text x="1513" y="79" text-anchor="middle" class="t-block" font-size="9">Zone</text>
+      <g class="t-block" font-size="9">
+        <text x="1294" y="103" text-anchor="middle">A</text><text x="1324" y="103">Initial release</text><text x="1513" y="103" text-anchor="middle">—</text>
+        <text x="1294" y="120" text-anchor="middle">B</text><text x="1324" y="120">Array dihedral added</text><text x="1513" y="120" text-anchor="middle">C1</text>
+        <text x="1294" y="137" text-anchor="middle">C</text><text x="1324" y="137">MSI baffle detail</text><text x="1513" y="137" text-anchor="middle">B3</text>
+      </g>
+    </g>
+
+    <!-- ============ notes (top-left) ============ -->
+    <g class="t-block" font-size="9.5">
+      <text x="70" y="84">Notes:</text>
+      <text x="70" y="102">1. All dimensions in metres unless noted.</text>
+      <text x="70" y="120">2. MLI blanketing shown hatched.</text>
+      <text x="70" y="138">3. Solar array shown fully deployed.</text>
+      <text x="70" y="156">4. Ref: ESA / eoPortal / SentiWiki public data.</text>
+    </g>
+
+    <!-- ============ centerlines ============ -->
+    <line x1="330" y1="520" x2="1340" y2="520" class="dwg-center"/>
+    <line x1="560" y1="200" x2="560" y2="850" class="dwg-center"/>
+
+    <!-- ============ SPACECRAFT — main elevation ============ -->
+    <!-- solar array: yoke + 3 panels, slight dihedral, cell grid -->
+    <g id="p-array">
+      <line x1="648" y1="520" x2="700" y2="520" class="dwg-line"/>
+      <circle cx="674" cy="520" r="9" class="dwg-line"/>
+      <circle cx="674" cy="520" r="3" class="dwg-thin"/>
+      <g>
+        <rect x="702" y="446" width="195" height="148" class="dwg-line dwg-fill"/>
+        <rect x="702" y="446" width="195" height="148" fill="url(#cells)"/>
+        <line x1="799" y1="446" x2="799" y2="594" class="dwg-thin"/>
+      </g>
+      <line x1="897" y1="500" x2="905" y2="500" class="dwg-thin"/><line x1="897" y1="540" x2="905" y2="540" class="dwg-thin"/>
+      <g>
+        <rect x="905" y="448" width="195" height="146" class="dwg-line dwg-fill" transform="rotate(.6 905 521)"/>
+        <rect x="905" y="448" width="195" height="146" fill="url(#cells)" transform="rotate(.6 905 521)"/>
+      </g>
+      <line x1="1100" y1="500" x2="1108" y2="500" class="dwg-thin"/><line x1="1100" y1="540" x2="1108" y2="540" class="dwg-thin"/>
+      <g>
+        <rect x="1108" y="450" width="195" height="144" class="dwg-line dwg-fill" transform="rotate(1.2 1108 522)"/>
+        <rect x="1108" y="450" width="195" height="144" fill="url(#cells)" transform="rotate(1.2 1108 522)"/>
+      </g>
+    </g>
+
+    <!-- primary bus with MLI hatch, closure panels, corner rails, radiator -->
+    <g id="p-bus">
+      <rect x="475" y="405" width="170" height="230" class="dwg-line dwg-fill"/>
+      <rect x="475" y="405" width="170" height="230" fill="url(#mli)"/>
+      <rect x="472" y="390" width="176" height="17" class="dwg-line dwg-fill-dark"/>
+      <rect x="472" y="633" width="176" height="17" class="dwg-line dwg-fill-dark"/>
+      <line x1="487" y1="390" x2="487" y2="650" class="dwg-thin"/>
+      <line x1="633" y1="390" x2="633" y2="650" class="dwg-thin"/>
+      <!-- radiator fins on -X face -->
+      <rect x="452" y="428" width="8" height="186" class="dwg-line dwg-fill-dark"/>
+      <g class="dwg-thin">
+        <line x1="438" y1="440" x2="452" y2="440"/><line x1="438" y1="460" x2="452" y2="460"/>
+        <line x1="438" y1="480" x2="452" y2="480"/><line x1="438" y1="500" x2="452" y2="500"/>
+        <line x1="438" y1="520" x2="452" y2="520"/><line x1="438" y1="540" x2="452" y2="540"/>
+        <line x1="438" y1="560" x2="452" y2="560"/><line x1="438" y1="580" x2="452" y2="580"/>
+        <line x1="438" y1="600" x2="452" y2="600"/>
+      </g>
+      <!-- star trackers, angled, +Y deck -->
+      <g transform="rotate(-28 615 386)">
+        <rect x="603" y="360" width="24" height="34" class="dwg-line dwg-fill-dark"/>
+        <ellipse cx="615" cy="360" rx="11" ry="4" class="dwg-glass dwg-thin"/>
+      </g>
+      <g transform="rotate(-12 585 382)">
+        <rect x="575" y="358" width="20" height="30" class="dwg-line dwg-fill-dark"/>
+        <ellipse cx="585" cy="358" rx="9" ry="3.5" class="dwg-glass dwg-thin"/>
+      </g>
+      <!-- laser-comms dome -->
+      <path d="M498 390 a 20 20 0 0 1 40 0 Z" class="dwg-line dwg-fill-dark"/>
+      <!-- thruster nozzles, -Y deck -->
+      <g class="dwg-line">
+        <path d="M505 650 l -6 20 h 22 l -6 -20 Z" fill="rgba(14,20,32,.7)"/>
+        <path d="M553 650 l -6 20 h 22 l -6 -20 Z" fill="rgba(14,20,32,.7)"/>
+        <path d="M601 650 l -6 20 h 22 l -6 -20 Z" fill="rgba(14,20,32,.7)"/>
+      </g>
+      <!-- whip antenna -->
+      <line x1="640" y1="390" x2="654" y2="318" class="dwg-thin"/>
+      <circle cx="654" cy="318" r="2.4" fill="rgba(127,168,222,.9)"/>
+    </g>
+
+    <!-- MSI instrument: nadir telescope baffle + aperture -->
+    <g id="p-msi">
+      <path d="M521 650 L 599 650 L 611 728 L 509 728 Z" class="dwg-line dwg-fill"/>
+      <path d="M521 650 L 599 650 L 611 728 L 509 728 Z" fill="url(#mli)"/>
+      <path d="M517 728 L 603 728 L 597 762 L 523 762 Z" class="dwg-line dwg-fill-dark"/>
+      <rect x="527" y="762" width="66" height="10" class="dwg-line dwg-glass"/>
+      <ellipse cx="560" cy="784" rx="46" ry="10" class="dwg-line dwg-glass"/>
+      <ellipse cx="560" cy="784" rx="48" ry="11.5" class="dwg-thin" stroke="#5B8AD1"/>
+      <!-- ray construction lines to nadir -->
+      <line x1="514" y1="784" x2="470" y2="884" class="dwg-faint"/>
+      <line x1="606" y1="784" x2="650" y2="884" class="dwg-faint"/>
+      <text x="560" y="902" text-anchor="middle" class="t-dim" font-size="11">Nadir · Swath 290 km</text>
+    </g>
+
+    <!-- X-band antenna: mast + dish, +Y -->
+    <g id="p-dish">
+      <line x1="516" y1="390" x2="516" y2="272" class="dwg-line"/>
+      <line x1="509" y1="390" x2="509" y2="300" class="dwg-thin"/>
+      <path d="M470 268 A 52 52 0 0 1 562 250 L 552 262 A 40 40 0 0 0 482 276 Z" class="dwg-line dwg-fill-dark"/>
+      <line x1="516" y1="272" x2="534" y2="238" class="dwg-thin"/>
+      <circle cx="534" cy="238" r="3" class="dwg-thin"/>
+      <path d="M470 268 L 562 250" class="dwg-faint"/>
+    </g>
+
+    <!-- ============ dimension lines (real public figures) ============ -->
+    <g>
+      <!-- bus height 3.4 m -->
+      <line x1="404" y1="390" x2="404" y2="650" class="dwg-dim"/>
+      <line x1="404" y1="390" x2="466" y2="390" class="dwg-faint"/>
+      <line x1="404" y1="650" x2="466" y2="650" class="dwg-faint"/>
+      <path d="M404 390 l -4 10 8 0 Z M404 650 l -4 -10 8 0 Z" fill="rgba(91,138,209,.45)"/>
+      <text x="392" y="524" class="t-dim" font-size="12" text-anchor="middle" transform="rotate(-90 392 524)">3.4</text>
+      <!-- bus width 2.35 m -->
+      <line x1="475" y1="360" x2="645" y2="360" class="dwg-dim"/>
+      <line x1="475" y1="360" x2="475" y2="386" class="dwg-faint"/>
+      <line x1="645" y1="360" x2="645" y2="386" class="dwg-faint"/>
+      <path d="M475 360 l 10 -4 0 8 Z M645 360 l -10 -4 0 8 Z" fill="rgba(91,138,209,.45)"/>
+      <text x="560" y="350" class="t-dim" font-size="12" text-anchor="middle">2.35</text>
+      <!-- array span -->
+      <line x1="702" y1="640" x2="1303" y2="640" class="dwg-dim"/>
+      <line x1="702" y1="600" x2="702" y2="640" class="dwg-faint"/>
+      <line x1="1303" y1="600" x2="1303" y2="640" class="dwg-faint"/>
+      <path d="M702 640 l 10 -4 0 8 Z M1303 640 l -10 -4 0 8 Z" fill="rgba(91,138,209,.45)"/>
+      <text x="1002" y="660" class="t-dim" font-size="12" text-anchor="middle">Solar array — deployed</text>
+    </g>
+
+    <!-- ============ detail circle: MSI aperture ============ -->
+    <g id="p-detail">
+      <circle cx="560" cy="784" r="72" class="dwg-thin" stroke-dasharray="8 6"/>
+      <line x1="622" y1="748" x2="760" y2="700" class="dwg-faint"/>
+      <circle cx="850" cy="740" r="86" class="dwg-line dwg-fill-dark"/>
+      <circle cx="850" cy="740" r="60" class="dwg-line"/>
+      <circle cx="850" cy="740" r="42" class="dwg-thin" fill="rgba(4,6,11,.9)"/>
+      <circle cx="850" cy="740" r="14" class="dwg-thin" fill="url(#hatch45)"/>
+      <line x1="850" y1="646" x2="850" y2="834" class="dwg-center"/>
+      <line x1="756" y1="740" x2="944" y2="740" class="dwg-center"/>
+      <text x="850" y="852" text-anchor="middle" class="t-label" font-size="10">Detail A — MSI aperture · TMA Ø150 mm</text>
+    </g>
+
+    <!-- ============ small top view (upper-left of drawing area) ============ -->
+    <g id="p-topview">
+      <rect x="180" y="220" width="96" height="72" class="dwg-thin dwg-fill"/>
+      <rect x="180" y="220" width="96" height="72" fill="url(#mli)"/>
+      <line x1="276" y1="256" x2="316" y2="256" class="dwg-thin"/>
+      <rect x="316" y="238" width="60" height="36" class="dwg-thin dwg-fill"/>
+      <rect x="316" y="238" width="60" height="36" fill="url(#cells)"/>
+      <line x1="128" y1="256" x2="380" y2="256" class="dwg-center"/>
+      <text x="228" y="316" text-anchor="middle" class="t-label" font-size="10">Plan view</text>
+    </g>
+
+    <!-- ======================================================================
+         DATASHEET CALLOUTS — labelled the same way as the original version.
+         One group lights per section on scroll; data is byte-identical.
+         ====================================================================== -->
+    <!-- 00 · Platform -->
+    <g class="callout" id="co-platform">
+      <circle class="co-dot" cx="535" cy="470" r="3.5"/>
+      <line class="co-line" x1="535" y1="470" x2="330" y2="392"/>
+      <rect class="co-box" x="152" y="352" width="178" height="86"/>
+      <text class="co-obj" x="166" y="371">Sentinel-2</text>
+      <text class="co-title" x="166" y="387">Platform</text>
+      <line class="co-rule" x1="166" y1="394" x2="316" y2="394"/>
+      <text class="co-k" x="166" y="410">Launch Mass</text><text class="co-v" x="316" y="410" text-anchor="end">1,140 kg</text>
+      <text class="co-k" x="166" y="424">Power (EOL)</text><text class="co-v" x="316" y="424" text-anchor="end">1,700 W</text>
+      <text class="co-k" x="166" y="438">Orbit</text><text class="co-v" x="316" y="438" text-anchor="end">786 km SSO</text>
+    </g>
+    <!-- 01 · Solar Array -->
+    <g class="callout" id="co-array">
+      <circle class="co-dot" cx="1002" cy="470" r="3.5"/>
+      <line class="co-line" x1="1002" y1="470" x2="1080" y2="352"/>
+      <rect class="co-box" x="1080" y="298" width="178" height="72"/>
+      <text class="co-obj" x="1094" y="317">Sentinel-2</text>
+      <text class="co-title" x="1094" y="333">Solar Array</text>
+      <line class="co-rule" x1="1094" y1="340" x2="1244" y2="340"/>
+      <text class="co-k" x="1094" y="356">Array Power</text><text class="co-v" x="1244" y="356" text-anchor="end">1,700 W</text>
+      <text class="co-k" x="1094" y="370">Bus Platform</text><text class="co-v" x="1244" y="370" text-anchor="end">AstroBus-L</text>
+    </g>
+    <!-- 02 · Mission -->
+    <g class="callout" id="co-mission">
+      <circle class="co-dot" cx="560" cy="852" r="3.5"/>
+      <line class="co-line" x1="560" y1="852" x2="368" y2="806"/>
+      <rect class="co-box" x="190" y="766" width="178" height="86"/>
+      <text class="co-obj" x="204" y="785">Sentinel-2</text>
+      <text class="co-title" x="204" y="801">Mission</text>
+      <line class="co-rule" x1="204" y1="808" x2="354" y2="808"/>
+      <text class="co-k" x="204" y="824">Revisit</text><text class="co-v" x="354" y="824" text-anchor="end">5 days (×2 sat)</text>
+      <text class="co-k" x="204" y="838">Data Vol</text><text class="co-v" x="354" y="838" text-anchor="end">1.6 TB / orbit</text>
+      <text class="co-k" x="204" y="852">Swath Width</text><text class="co-v" x="354" y="852" text-anchor="end">290 km</text>
+    </g>
+    <!-- 03 · MSI Instrument -->
+    <g class="callout" id="co-msi">
+      <circle class="co-dot" cx="936" cy="740" r="3.5"/>
+      <line class="co-line" x1="936" y1="740" x2="962" y2="726"/>
+      <rect class="co-box" x="962" y="656" width="188" height="114"/>
+      <text class="co-obj" x="976" y="675">Sentinel-2</text>
+      <text class="co-title" x="976" y="691">MSI Instrument</text>
+      <line class="co-rule" x1="976" y1="698" x2="1136" y2="698"/>
+      <text class="co-k" x="976" y="714">Telescope</text><text class="co-v" x="1136" y="714" text-anchor="end">TMA · Ø150mm</text>
+      <text class="co-k" x="976" y="728">Bands</text><text class="co-v" x="1136" y="728" text-anchor="end">13 (10/20/60m)</text>
+      <text class="co-k" x="976" y="742">Imaging Pwr</text><text class="co-v" x="1136" y="742" text-anchor="end">200 W</text>
+      <text class="co-k" x="976" y="756">Mass</text><text class="co-v" x="1136" y="756" text-anchor="end">290 kg</text>
+    </g>
+    <!-- 04 · Primary Bus -->
+    <g class="callout" id="co-bus">
+      <circle class="co-dot" cx="475" cy="560" r="3.5"/>
+      <line class="co-line" x1="475" y1="560" x2="404" y2="576"/>
+      <rect class="co-box" x="200" y="548" width="204" height="100"/>
+      <text class="co-obj" x="214" y="567">Sentinel-2</text>
+      <text class="co-title" x="214" y="583">Primary Bus</text>
+      <line class="co-rule" x1="214" y1="590" x2="390" y2="590"/>
+      <text class="co-k" x="214" y="606">Launch Mass</text><text class="co-v" x="390" y="606" text-anchor="end">1,140 kg</text>
+      <text class="co-k" x="214" y="620">Dry Mass</text><text class="co-v" x="390" y="620" text-anchor="end">1,017 kg</text>
+      <text class="co-k" x="214" y="634">Dimensions</text><text class="co-v" x="390" y="634" text-anchor="end">3.4×1.8×2.35m</text>
+    </g>
+    <!-- 05 · X-Band Antenna -->
+    <g class="callout" id="co-xband">
+      <circle class="co-dot" cx="524" cy="256" r="3.5"/>
+      <line class="co-line" x1="524" y1="256" x2="654" y2="182"/>
+      <rect class="co-box" x="654" y="128" width="196" height="86"/>
+      <text class="co-obj" x="668" y="147">Sentinel-2</text>
+      <text class="co-title" x="668" y="163">X-Band Antenna</text>
+      <line class="co-rule" x1="668" y1="170" x2="836" y2="170"/>
+      <text class="co-k" x="668" y="186">Downlink</text><text class="co-v" x="836" y="186" text-anchor="end">560 Mbps</text>
+      <text class="co-k" x="668" y="200">TT&amp;C Uplink</text><text class="co-v" x="836" y="200" text-anchor="end">64 kbps</text>
+      <text class="co-k" x="668" y="214">TT&amp;C Downlink</text><text class="co-v" x="836" y="214" text-anchor="end">2 Mbps</text>
+    </g>
+    <!-- ============ Annex B — acquisition tasking (VANTAGE) ============ -->
+    <g class="callout" id="co-code">
+      <rect class="co-box" x="892" y="72" width="348" height="158"/>
+      <text class="co-obj" x="906" y="91">Annex B</text>
+      <text class="co-title" x="906" y="107">Acquisition Tasking — Vantage</text>
+      <line class="co-rule" x1="906" y1="114" x2="1226" y2="114"/>
+      <g font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="10.5" letter-spacing="0">
+        <text x="906" y="132" fill="#6E7A8C"># vantage · scheduled monitor</text>
+        <text x="906" y="146" fill="#AAB3C0">aoi  = load_aoi(<tspan fill="#7FA8DE">"souda_bay.geojson"</tspan>)</text>
+        <text x="906" y="160" fill="#AAB3C0">task = <tspan fill="#5B8AD1">Monitor</tspan>(aoi, source=[<tspan fill="#7FA8DE">"S2_MSI"</tspan>,<tspan fill="#7FA8DE">"S1_SAR"</tspan>],</text>
+        <text x="906" y="174" fill="#AAB3C0">               cadence=<tspan fill="#7FA8DE">"5d"</tspan>, threshold=<tspan fill="#A9C6F0">0.025</tspan>)</text>
+        <text x="906" y="188" fill="#AAB3C0"><tspan fill="#5B8AD1">for</tspan> scene <tspan fill="#5B8AD1">in</tspan> task.watch():</text>
+        <text x="906" y="202" fill="#AAB3C0">    diff = change(scene, baseline, index=<tspan fill="#7FA8DE">"NDVI"</tspan>)</text>
+        <text x="906" y="216" fill="#AAB3C0">    <tspan fill="#5B8AD1">if</tspan> diff.pct &gt; task.threshold:</text>
+        <text x="906" y="230" fill="#AAB3C0">        alert(diff, vessels=detect(scene))</text>
+      </g>
+      <line class="co-line" x1="892" y1="200" x2="654" y2="318"/>
+      <circle class="co-dot" cx="654" cy="318" r="3.5"/>
+    </g>
+  </g>
+</svg>
+</div>
 <div class="vignette"></div>
 <div class="grain"></div>
 
@@ -217,11 +565,9 @@
     <a href="#contact" data-sec="6"><span class="idx">06</span>Contact</a>
     <a href="#" class="writing-link"><span class="idx">↗</span>Writing</a>
   </nav>
+  <div class="tele" id="tele" aria-hidden="true"></div>
 </header>
-<div class="tele" id="tele" aria-hidden="true"></div>
 
-<svg id="specLine" aria-hidden="true"><line/><circle/></svg>
-<div class="spec-panel" id="specPanel" aria-hidden="true"></div>
 <div class="ticker" id="ticker">
   <button data-go="hero"    class="on"><span class="tick"></span>00</button>
   <button data-go="work"><span class="tick"></span>01</button>
@@ -369,547 +715,153 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script>
 (function(){
-  const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const canvas = document.getElementById('scene');
+  'use strict';
+  var REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-  renderer.setSize(innerWidth, innerHeight);
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.02;
+  /* =====================================================================
+     DRAWING RIG — 2D replacement for the 3D camera.
+     Same section keyframes idea: each section focuses a sub-component of
+     the Sentinel-2 engineering drawing (pan + zoom on the #rig group),
+     interpolated continuously with the scroll position, with the same
+     easing, smoothing, breathing dolly and mouse parallax as before.
+     ===================================================================== */
+  var rig = document.getElementById('rig');
+  var VBW = 1600, VBH = 1000;
 
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x070B12, 0.008);
-  const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 400);
-  camera.position.set(0.5,0.6,14);
-
-  /* ---------- cool environment for blue-steel reflections ---------- */
-  function envTex(){
-    const c=document.createElement('canvas');c.width=1024;c.height=512;const x=c.getContext('2d');
-    const g=x.createLinearGradient(0,0,0,512);
-    g.addColorStop(0,'#0c1526');g.addColorStop(.5,'#080d17');g.addColorStop(1,'#04060b');
-    x.fillStyle=g;x.fillRect(0,0,1024,512);
-    const glow=x.createRadialGradient(512,380,20,512,380,440);
-    glow.addColorStop(0,'rgba(91,138,209,0.5)');glow.addColorStop(.4,'rgba(60,90,150,0.16)');glow.addColorStop(1,'rgba(0,0,0,0)');
-    x.fillStyle=glow;x.fillRect(0,0,1024,512);
-    const key=x.createRadialGradient(820,110,10,820,110,340);
-    key.addColorStop(0,'rgba(210,225,255,0.55)');key.addColorStop(1,'rgba(0,0,0,0)');
-    x.fillStyle=key;x.fillRect(0,0,1024,512);
-    const t=new THREE.CanvasTexture(c);t.mapping=THREE.EquirectangularReflectionMapping;t.encoding=THREE.sRGBEncoding;return t;
-  }
-  const pmrem=new THREE.PMREMGenerator(renderer);
-  const envMap=pmrem.fromEquirectangular(envTex()).texture;
-  scene.environment=envMap;
-
-  /* ---------- textures ---------- */
-  function quiltNormal(){ // MLI quilting -> fake normal via bump-ish canvas
-    const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
-    x.fillStyle='#8080ff';x.fillRect(0,0,256,256);
-    x.strokeStyle='rgba(90,90,200,0.9)';x.lineWidth=2;
-    for(let i=-256;i<256;i+=22){x.beginPath();x.moveTo(i,0);x.lineTo(i+256,256);x.stroke();
-      x.beginPath();x.moveTo(i+256,0);x.lineTo(i,256);x.stroke();}
-    const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2,3);return t;
-  }
-  function roughNoise(){
-    const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
-    const img=x.createImageData(256,256);
-    for(let i=0;i<img.data.length;i+=4){const v=120+Math.random()*100;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}
-    x.putImageData(img,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(3,3);return t;
-  }
-  function solarTex(){
-    const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');
-    x.fillStyle='#08132b';x.fillRect(0,0,512,512);
-    const cols=8,rows=16,pad=6,cw=(512-pad*(cols+1))/cols,ch=(512-pad*(rows+1))/rows;
-    for(let r=0;r<rows;r++)for(let col=0;col<cols;col++){
-      const cx=pad+col*(cw+pad),cy=pad+r*(ch+pad);
-      const grd=x.createLinearGradient(cx,cy,cx+cw,cy+ch);
-      grd.addColorStop(0,'#16305e');grd.addColorStop(.5,'#102a52');grd.addColorStop(1,'#0c2148');
-      x.fillStyle=grd;x.fillRect(cx,cy,cw,ch);
-      x.strokeStyle='rgba(120,150,210,0.28)';x.lineWidth=1;x.strokeRect(cx+.5,cy+.5,cw-1,ch-1);
-    }
-    x.strokeStyle='rgba(160,185,230,0.18)';x.lineWidth=2;
-    for(let col=0;col<cols;col++){const cx=pad+col*(cw+pad)+cw/2;x.beginPath();x.moveTo(cx,0);x.lineTo(cx,512);x.stroke();}
-    const t=new THREE.CanvasTexture(c);t.anisotropy=8;return t;
-  }
-
-  const bumpTex=quiltNormal();
-  const foil=new THREE.MeshStandardMaterial({color:0x3F4F6B,metalness:0.96,roughness:0.4,
-    roughnessMap:roughNoise(),bumpMap:bumpTex,bumpScale:0.012,envMap,envMapIntensity:1.2});
-  const foilDark=new THREE.MeshStandardMaterial({color:0x0E1420,metalness:0.7,roughness:0.5,envMap,envMapIntensity:0.6});
-  const metal=new THREE.MeshStandardMaterial({color:0x9AA3AF,metalness:0.92,roughness:0.26,envMap,envMapIntensity:1.05});
-  const gold=new THREE.MeshStandardMaterial({color:0x8A7A55,metalness:0.9,roughness:0.35,envMap,envMapIntensity:1.0}); // muted, accent only
-  const solar=new THREE.MeshPhysicalMaterial({map:solarTex(),metalness:0.25,roughness:0.34,clearcoat:1,
-    clearcoatRoughness:0.26,envMap,envMapIntensity:1.3,emissive:0x0a1a3a,emissiveIntensity:0.32});
-  const lensMat=new THREE.MeshStandardMaterial({color:0x04060b,metalness:0.3,roughness:0.06,envMap,envMapIntensity:1.5});
-  const ringMat=new THREE.MeshBasicMaterial({color:0x5B8AD1});
-
-  /* ---------- satellite ---------- */
-  const sat=new THREE.Group();
-
-  const bus=new THREE.Mesh(new THREE.BoxGeometry(1.7,2.3,1.7,4,6,4),foil);sat.add(bus);
-  [0.75,-0.75].forEach(y=>{const b=new THREE.Mesh(new THREE.BoxGeometry(1.75,0.3,1.75),foilDark);b.position.y=y;sat.add(b);});
-  [[.9,.9],[.9,-.9],[-.9,.9],[-.9,-.9]].forEach(p=>{const r=new THREE.Mesh(new THREE.BoxGeometry(0.09,2.36,0.09),metal);r.position.set(p[0],0,p[1]);sat.add(r);});
-
-  // radiator panel (fine fins) on +X-ish rear face
-  const rad=new THREE.Group();
-  const radBase=new THREE.Mesh(new THREE.BoxGeometry(0.06,1.9,1.4),foilDark);radBase.position.set(-0.88,0,0);rad.add(radBase);
-  for(let i=0;i<9;i++){const fin=new THREE.Mesh(new THREE.BoxGeometry(0.14,1.8,0.02),metal);fin.position.set(-0.98,0,-0.62+i*0.155);rad.add(fin);}
-  sat.add(rad);
-
-  // MSI instrument (nadir, +Z toward viewer at hero)
-  const baffle=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.72,0.95,48),foil);baffle.rotation.x=Math.PI/2;baffle.position.set(0,-0.25,1.1);sat.add(baffle);
-  const baffle2=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.6,0.35,48),foilDark);baffle2.rotation.x=Math.PI/2;baffle2.position.set(0,-0.25,1.5);sat.add(baffle2);
-  const lens=new THREE.Mesh(new THREE.CylinderGeometry(0.46,0.46,0.1,48),lensMat);lens.rotation.x=Math.PI/2;lens.position.set(0,-0.25,1.63);sat.add(lens);
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.48,0.018,12,48),ringMat);ring.position.set(0,-0.25,1.66);sat.add(ring);
-
-  // star trackers (angled dark apertures)
-  [[0.55,1.0,0.6,0.5],[0.7,0.9,-0.5,-0.4]].forEach(s=>{
-    const st=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.15,0.34,20),foilDark);
-    st.position.set(s[0],s[1],s[2]);st.rotation.set(0.5,s[3],0.3);sat.add(st);
-    const ap=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,0.05,20),lensMat);
-    ap.position.set(s[0]+0.02,s[1]+0.16,s[2]+0.02);ap.rotation.copy(st.rotation);sat.add(ap);
-  });
-
-  // thruster nozzles (-Y)
-  [[-0.4,-0.4],[0.4,-0.4],[0,0.45]].forEach(p=>{
-    const noz=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.12,0.22,18),metal);
-    noz.position.set(p[0],-1.2,p[1]);sat.add(noz);
-  });
-
-  // laser comms dome + antennas (+Y)
-  const dome=new THREE.Mesh(new THREE.SphereGeometry(0.22,32,24,0,Math.PI*2,0,Math.PI/2),gold);dome.position.set(0.45,1.2,0.35);sat.add(dome);
-  const antG=new THREE.Group();
-  const mast=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,1.5,16),metal);mast.position.set(-0.4,1.95,-0.25);antG.add(mast);
-  const dish=new THREE.Mesh(new THREE.SphereGeometry(0.34,36,26,0,Math.PI*2,0,Math.PI*0.42),metal);dish.position.set(-0.4,2.68,-0.25);dish.rotation.x=Math.PI*0.16;antG.add(dish);
-  const dishInner=new THREE.Mesh(new THREE.SphereGeometry(0.28,32,24,0,Math.PI*2,0,Math.PI*0.42),foilDark);dishInner.position.copy(dish.position);dishInner.position.y-=0.02;dishInner.rotation.copy(dish.rotation);antG.add(dishInner);
-  const feed=new THREE.Mesh(new THREE.CylinderGeometry(0.015,0.015,0.32,8),metal);feed.position.set(-0.4,2.56,-0.08);antG.add(feed);
-  const whip=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.9,8),metal);whip.position.set(0.5,1.9,-0.4);antG.add(whip);
-  sat.add(antG);
-
-  // solar array (yoke + 3 panels, slight dihedral)
-  const array=new THREE.Group();
-  const yoke=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.95,16),metal);yoke.rotation.z=Math.PI/2;yoke.position.set(1.35,0,0);array.add(yoke);
-  const pGeo=new THREE.BoxGeometry(1.95,1.5,0.05);
-  for(let i=0;i<3;i++){
-    const wrap=new THREE.Group();
-    const p=new THREE.Mesh(pGeo,solar);wrap.add(p);
-    const fr=new THREE.Mesh(new THREE.BoxGeometry(2.0,1.56,0.02),metal);fr.position.z=-0.035;wrap.add(fr);
-    wrap.position.set(2.1+i*2.0,0,0);wrap.rotation.y=(i-1)*0.04;
-    array.add(wrap);
-  }
-  sat.add(array);
-
-  // ---------- datasheet callout anchors (real Sentinel-2 spec points on the model) ----------
-  function specAnchor(parent,x,y,z){const o=new THREE.Object3D();o.position.set(x,y,z);parent.add(o);return o;}
-  const specAnchors = {
-    platform: specAnchor(sat, 0.6, 0, 0),
-    array:    specAnchor(sat, 4.2, 0, 0),
-    msi:      specAnchor(sat, 0, -0.25, 1.63),
-    bus:      specAnchor(sat, 0, 0.3, 0.5),
-    dish:     specAnchor(antG, -0.4, 2.68, -0.25)
-  };
-  // Verified public specs (ESA / eoPortal / SentiWiki), one group shown per section on scroll.
-  const specData = [
-    {key:'platform', title:'Platform', offset:[48,-72], lines:[['Launch Mass','1,140 kg'],['Power (EOL)','1,700 W'],['Orbit','786 km SSO']]},
-    {key:'array',    title:'Solar Array', offset:[42,-58], lines:[['Array Power','1,700 W'],['Bus Platform','AstroBus-L']]},
-    {key:'platform', title:'Mission', offset:[44,58], lines:[['Revisit','5 days (×2 sat)'],['Data Vol','1.6 TB / orbit'],['Swath Width','290 km']]},
-    {key:'msi',      title:'MSI Instrument', offset:[46,-42], lines:[['Telescope','TMA · Ø150mm'],['Bands','13 (10/20/60m)'],['Imaging Pwr','200 W'],['Mass','290 kg']]},
-    {key:'bus',      title:'Primary Bus', offset:[50,-30], lines:[['Launch Mass','1,140 kg'],['Dry Mass','1,017 kg'],['Dimensions','3.4×1.8×2.35m']]},
-    {key:'dish',     title:'X-Band Antenna', offset:[42,56], lines:[['Downlink','560 Mbps'],['TT&C Uplink','64 kbps'],['TT&C Downlink','2 Mbps']]},
-    null
+  // keyframes: f = focus point in sheet coords, s = zoom, a = screen anchor (fractions)
+  var KF = [
+    {f:[740,510], s:0.92, a:[0.62,0.50]},  // 0 hero: whole sheet, drawing right of the name
+    {f:[1002,520],s:1.55, a:[0.66,0.46]},  // 1 work: solar array
+    {f:[578,700], s:1.70, a:[0.74,0.52]},  // 2 case: instrument over nadir
+    {f:[700,745], s:2.20, a:[0.32,0.50]},  // 3 vision: MSI aperture (tight)
+    {f:[560,505], s:1.80, a:[0.70,0.50]},  // 4 about: bus 3/4
+    {f:[520,262], s:2.10, a:[0.32,0.44]},  // 5 quals: antenna/dish
+    {f:[760,500], s:0.66, a:[0.50,0.46]}   // 6 contact: pull far back
   ];
-  const specLineEl=document.querySelector('#specLine line'), specDotEl=document.querySelector('#specLine circle');
-  const specPanelEl=document.getElementById('specPanel');
-  let specShownFor=-1;
-  function updateSpecPanel(){
-    const entry = specData[activeSec];
-    if(!entry || innerWidth<=900){
-      specLineEl.classList.remove('on'); specDotEl.classList.remove('on'); specPanelEl.classList.remove('on');
-      specShownFor=-1; return;
-    }
-    if(specShownFor!==activeSec){
-      specPanelEl.innerHTML = '<div class="spec-obj">Sentinel-2</div><div class="spec-title">'+entry.title+'</div>'+
-        entry.lines.map(function(l){return '<div class="spec-row"><span class="k">'+l[0]+'</span><span class="v">'+l[1]+'</span></div>';}).join('');
-      specShownFor=activeSec;
-    }
-    const wp=new THREE.Vector3(); specAnchors[entry.key].getWorldPosition(wp); wp.project(camera);
-    if(wp.z>1){ specLineEl.classList.remove('on'); specDotEl.classList.remove('on'); specPanelEl.classList.remove('on'); return; }
-    const sx=(wp.x*0.5+0.5)*innerWidth, sy=(-wp.y*0.5+0.5)*innerHeight;
-    let px=sx+entry.offset[0], py=sy+entry.offset[1];
-    const pw=specPanelEl.offsetWidth||168, ph=specPanelEl.offsetHeight||90;
-    px=Math.min(Math.max(px,12), innerWidth-pw-12);
-    py=Math.min(Math.max(py,12), innerHeight-ph-12);
-    specPanelEl.style.left=px+'px'; specPanelEl.style.top=py+'px';
-    specDotEl.setAttribute('cx',sx); specDotEl.setAttribute('cy',sy);
-    specLineEl.setAttribute('x1',sx); specLineEl.setAttribute('y1',sy);
-    specLineEl.setAttribute('x2', px + (sx<px?0:pw) ); specLineEl.setAttribute('y2', py+16 );
-    specLineEl.classList.add('on'); specDotEl.classList.add('on'); specPanelEl.classList.add('on');
-  }
+  var secIds=['hero','work','case','vision','about','quals','contact'];
+  var secEls=secIds.map(function(id){return document.getElementById(id);});
 
-  // ---------- telemetry line: live UTC clock + session elapsed ----------
-  const teleEl=document.getElementById('tele');
-  const teleStart=Date.now();
-  function pad(n){return String(n).padStart(2,'0');}
-  function updateTele(){
-    const now=new Date();
-    const utc=pad(now.getUTCHours())+':'+pad(now.getUTCMinutes())+':'+pad(now.getUTCSeconds());
-    const el=Date.now()-teleStart, s=Math.floor(el/1000);
-    const t=pad(Math.floor(s/3600))+':'+pad(Math.floor(s/60)%60)+':'+pad(s%60);
-    teleEl.innerHTML='UTC <b>'+utc+'</b>&nbsp;&nbsp;·&nbsp;&nbsp;SESSION T+ <b>'+t+'</b>';
-    teleEl.style.opacity=1;
-  }
-  updateTele(); setInterval(updateTele, 1000);
-
-  scene.add(sat);
-  sat.rotation.set(0.16,-0.5,0.07);
-
-  // amber->blue glow behind sat
-  function glowSprite(col){const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
-    const g=x.createRadialGradient(128,128,0,128,128,128);g.addColorStop(0,col+'0.5)');g.addColorStop(.3,col+'0.14)');g.addColorStop(1,'rgba(0,0,0,0)');
-    x.fillStyle=g;x.fillRect(0,0,256,256);return new THREE.CanvasTexture(c);}
-  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowSprite('rgba(91,138,209,'),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
-  glow.scale.set(15,15,1);glow.position.set(0.4,0,-2.5);scene.add(glow);
-
-  /* ---------- Earth (procedural, realistic, blue-dominant) ---------- */
-  const SUN=new THREE.Vector3(6,7,5).normalize(); // matches key light direction
-  const uSun={value:SUN};
-
-  function buildEarth(){
-    // value noise, periodic in X (longitude wraps)
-    function hash(ix,iy,f){ix=((ix%f)+f)%f;let n=Math.sin(ix*127.1+iy*311.7)*43758.5453;return n-Math.floor(n);}
-    function sm(t){return t*t*(3-2*t);}
-    function vn(u,v,f){
-      const x=u*f,y=v*f,x0=Math.floor(x),y0=Math.floor(y),fx=sm(x-x0),fy=sm(y-y0);
-      const a=hash(x0,y0,f),b=hash(x0+1,y0,f),c=hash(x0,y0+1,f),d=hash(x0+1,y0+1,f);
-      return (a*(1-fx)+b*fx)*(1-fy)+(c*(1-fx)+d*fx)*fy;
-    }
-    function fbm(u,v,base,ox,oy){let s=0,a=0.5,f=base;for(let o=0;o<5;o++){s+=a*vn(u+ox,v+oy,f);f*=2;a*=0.5;}return s;}
-    const L=(a,b,t)=>a+(b-a)*t;
-
-    const W=768,H=384;
-    const mkC=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;return c;};
-    const color=mkC(),rough=mkC(),bump=mkC(),night=mkC();
-    const xC=color.getContext('2d'),xR=rough.getContext('2d'),xB=bump.getContext('2d'),xN=night.getContext('2d');
-    const iC=xC.createImageData(W,H),iR=xR.createImageData(W,H),iB=xB.createImageData(W,H);
-    const height=new Float32Array(W*H);
-
-    for(let y=0;y<H;y++){
-      const v=y/H,lat=Math.abs(v-0.5)*2;
-      for(let x=0;x<W;x++){
-        const u=x/W;
-        let h=fbm(u,v,5,0,0)*1.15-0.08;         // elevation
-        height[y*W+x]=h;
-        const i=(y*W+x)*4;
-        let r,g,b2,rgh;
-        if(h<0.55){                              // ocean (glossy)
-          const t=Math.max(0,h/0.55);
-          r=L(8,22,t); g=L(30,90,t); b2=L(62,128,t); rgh=42;
-        }else{                                   // land (muted, desaturated)
-          const t=Math.min(1,(h-0.55)/0.4);
-          if(h>0.87){r=198;g=208;b2=218;rgh=180;}
-          else{r=L(42,90,t);g=L(80,86,t);b2=L(58,60,t);rgh=212;}
-        }
-        const ice=Math.max(0,(lat-0.82)/0.18);   // polar caps
-        if(ice>0){const k=Math.min(1,ice);r=L(r,226,k);g=L(g,234,k);b2=L(b2,242,k);rgh=L(rgh,150,k);}
-        iC.data[i]=r;iC.data[i+1]=g;iC.data[i+2]=b2;iC.data[i+3]=255;
-        iR.data[i]=iR.data[i+1]=iR.data[i+2]=rgh;iR.data[i+3]=255;
-        const bv=Math.max(0,Math.min(255,(h-0.5)*300+64));
-        iB.data[i]=iB.data[i+1]=iB.data[i+2]=bv;iB.data[i+3]=255;
-      }
-    }
-    xC.putImageData(iC,0,0);xR.putImageData(iR,0,0);xB.putImageData(iB,0,0);
-
-    // ---- city lights: clustered metros (street grid + avenues), highway web, DC-style radial city ----
-    xN.fillStyle='#000';xN.fillRect(0,0,W,H);
-    const cities=[]; let tries=0;
-    while(cities.length<58 && tries<8000){
-      tries++;
-      const u=Math.random(), v=0.12+Math.random()*0.76;
-      const h=height[(Math.floor(v*H)*W+Math.floor(u*W))];
-      if(h<0.56||h>0.72) continue;               // lowland / coastal land only
-      let ok=true;
-      for(const c of cities){const dx=Math.min(Math.abs(c.u-u),1-Math.abs(c.u-u)),dy=c.v-v;if(dx*dx+dy*dy<0.0015){ok=false;break;}}
-      if(ok) cities.push({u,v,size:0.35+Math.random()*Math.random()*1.7});
-    }
-    const PX=c=>({x:c.u*W,y:c.v*H});
-    for(let a=0;a<cities.length;a++){           // highways between nearby metros
-      const pa=PX(cities[a]);
-      const near=cities.map((c,i)=>({i,d:Math.hypot(c.u-cities[a].u,c.v-cities[a].v)})).filter(o=>o.i!==a).sort((x,y)=>x.d-y.d).slice(0,2);
-      for(const n of near){ if(n.d>0.13) continue; const pb=PX(cities[n.i]);
-        xN.strokeStyle='rgba(255,210,150,0.09)';xN.lineWidth=1;xN.beginPath();xN.moveTo(pa.x,pa.y);xN.lineTo(pb.x,pb.y);xN.stroke(); }
-    }
-    function drawCity(c,dc){
-      const {x,y}=PX(c), R=7+c.size*20;
-      const g=xN.createRadialGradient(x,y,0,x,y,R);
-      g.addColorStop(0,'rgba(255,232,185,0.95)');g.addColorStop(0.28,'rgba(255,205,140,0.5)');g.addColorStop(1,'rgba(255,180,110,0)');
-      xN.fillStyle=g;xN.beginPath();xN.arc(x,y,R,0,Math.PI*2);xN.fill();
-      xN.save();xN.beginPath();xN.arc(x,y,R*0.86,0,Math.PI*2);xN.clip();
-      const gap=Math.max(2.2,R/7);
-      xN.strokeStyle='rgba(255,224,170,0.45)';xN.lineWidth=0.7;         // street grid
-      for(let gx=-R;gx<=R;gx+=gap){xN.beginPath();xN.moveTo(x+gx,y-R);xN.lineTo(x+gx,y+R);xN.stroke();}
-      for(let gy=-R;gy<=R;gy+=gap){xN.beginPath();xN.moveTo(x-R,y+gy);xN.lineTo(x+R,y+gy);xN.stroke();}
-      const spokes=dc?12:5, off=dc?0:Math.random()*6.28;               // radiating avenues
-      xN.strokeStyle='rgba(255,236,195,0.7)';xN.lineWidth=dc?1.1:0.85;
-      for(let s=0;s<spokes;s++){const a=off+(s/spokes)*6.283;xN.beginPath();xN.moveTo(x,y);xN.lineTo(x+Math.cos(a)*R,y+Math.sin(a)*R);xN.stroke();}
-      xN.restore();
-      const g2=xN.createRadialGradient(x,y,0,x,y,R*0.32);g2.addColorStop(0,'rgba(255,247,225,1)');g2.addColorStop(1,'rgba(255,220,160,0)');
-      xN.fillStyle=g2;xN.beginPath();xN.arc(x,y,R*0.32,0,Math.PI*2);xN.fill();
-      if(dc){xN.strokeStyle='rgba(0,0,0,0.85)';xN.lineWidth=Math.max(2,R*0.13);xN.beginPath();  // Potomac-like river
-        xN.moveTo(x-R*0.9,y+R*0.55);xN.quadraticCurveTo(x,y+R*0.05,x+R*0.65,y-R*0.85);xN.stroke();}
-    }
-    cities.sort((a,b)=>b.size-a.size);
-    cities.forEach((c,i)=>drawCity(c,i===0));   // largest metro rendered Washington-style
-
-    // clouds (separate layer)
-    const CW=512,CH=256,cl=document.createElement('canvas');cl.width=CW;cl.height=CH;
-    const xCl=cl.getContext('2d'),iCl=xCl.createImageData(CW,CH);
-    for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){
-      const u=x/CW,v=y/CH;let cov=Math.max(0,(fbm(u,v,6,3.3,1.7)-0.52)/0.48);cov=Math.pow(cov,1.3);
-      const i=(y*CW+x)*4;iCl.data[i]=iCl.data[i+1]=iCl.data[i+2]=255;iCl.data[i+3]=Math.min(255,cov*260);
-    }
-    xCl.putImageData(iCl,0,0);
-
-    const mk=cv=>{const t=new THREE.CanvasTexture(cv);t.anisotropy=8;return t;};
-    return {color:mk(color),rough:mk(rough),bump:mk(bump),night:mk(night),cloud:mk(cl)};
-  }
-  const EM=buildEarth();
-  const uNight={value:EM.night};
-
-  const earthMat=new THREE.MeshStandardMaterial({
-    map:EM.color,roughnessMap:EM.rough,bumpMap:EM.bump,bumpScale:0.6,
-    metalness:0.0,roughness:1.0,envMap,envMapIntensity:0.18,emissive:0x030a1a,emissiveIntensity:1.0
-  });
-  earthMat.onBeforeCompile=(sh)=>{
-    sh.uniforms.uNight=uNight;sh.uniforms.uSunDir=uSun;
-    sh.vertexShader=sh.vertexShader
-      .replace('#include <common>','#include <common>\nvarying vec3 vWNe;')
-      .replace('#include <begin_vertex>','#include <begin_vertex>\n vWNe=normalize(mat3(modelMatrix)*objectNormal);');
-    sh.fragmentShader=sh.fragmentShader
-      .replace('#include <common>','#include <common>\nuniform vec3 uSunDir;\nuniform sampler2D uNight;\nvarying vec3 vWNe;')
-      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n { float ndl=dot(normalize(vWNe),uSunDir); float ni=smoothstep(0.06,-0.18,ndl); totalEmissiveRadiance+=texture2D(uNight,vUv).rgb*ni*2.2; }');
-  };
-
-  const earth=new THREE.Mesh(new THREE.SphereGeometry(60,96,96),earthMat);
-  earth.position.set(6,-64,-8);earth.rotation.z=0.41;scene.add(earth);
-  const clouds=new THREE.Mesh(new THREE.SphereGeometry(60.5,96,96),
-    new THREE.MeshStandardMaterial({map:EM.cloud,transparent:true,depthWrite:false,metalness:0,roughness:1,opacity:0.9}));
-  clouds.position.copy(earth.position);clouds.rotation.z=0.41;scene.add(clouds);
-
-  const atmoMat=new THREE.ShaderMaterial({
-    side:THREE.BackSide,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,
-    uniforms:{uSunDir:uSun},
-    vertexShader:`varying vec3 vWN;varying vec3 vWP;
-      void main(){vec4 wp=modelMatrix*vec4(position,1.0);vWP=wp.xyz;vWN=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*viewMatrix*wp;}`,
-    fragmentShader:`uniform vec3 uSunDir;varying vec3 vWN;varying vec3 vWP;
-      void main(){vec3 vd=normalize(cameraPosition-vWP);float rim=pow(1.0-abs(dot(vWN,vd)),3.0);
-      float day=clamp(dot(vWN,uSunDir)*0.5+0.5,0.0,1.0);float glow=rim*mix(0.22,1.0,day);
-      vec3 col=mix(vec3(0.20,0.40,0.85),vec3(0.50,0.70,1.0),day);gl_FragColor=vec4(col*glow,glow);}`
-  });
-  const atmo=new THREE.Mesh(new THREE.SphereGeometry(61.8,96,96),atmoMat);atmo.position.copy(earth.position);scene.add(atmo);
-
-  // Earth gets its OWN sun (separate layer) so the city-lit night side faces the camera,
-  // while the satellite keeps its independent key light.
-  earth.layers.set(1); clouds.layers.set(1); atmo.layers.set(1); camera.layers.enable(1);
-  const earthSunDir=new THREE.Vector3(1.0,0.22,0.55).normalize();
-  uSun.value.copy(earthSunDir);
-  const earthSun=new THREE.DirectionalLight(0xfff4e6,2.15);
-  earthSun.position.copy(earth.position).addScaledVector(earthSunDir,220);
-  earthSun.target.position.copy(earth.position); scene.add(earthSun.target);
-  earthSun.layers.set(1); scene.add(earthSun);
-
-  /* ---------- REAL assets: load over the procedural base, fall back on failure ----------
-     These stream from a CORS-open mirror of the canonical three.js / NASA-derived planet
-     textures. They render when you open this file in a normal browser. If an environment
-     blocks cross-origin assets (e.g. an embedded sandbox), the procedural Earth above stays. */
-  (function loadRealEarth(){
-    const base='https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/textures/planets/';
-    const tl=new THREE.TextureLoader(); tl.setCrossOrigin('anonymous');
-    tl.load(base+'earth_atmos_2048.jpg', t=>{           // real Blue Marble day map
-      t.encoding=THREE.sRGBEncoding;
-      earthMat.map=t; earthMat.roughnessMap=null; earthMat.bumpMap=null; earthMat.roughness=0.92; earthMat.needsUpdate=true;
-    }, undefined, ()=>{});
-    tl.load(base+'earth_normal_2048.jpg', t=>{           // real terrain relief
-      earthMat.normalMap=t; earthMat.normalScale.set(0.7,0.7); earthMat.needsUpdate=true;
-    }, undefined, ()=>{});
-    tl.load(base+'earth_lights_2048.png', t=>{           // real night-lights (real cities incl. Washington)
-      t.encoding=THREE.sRGBEncoding; uNight.value=t;
-    }, undefined, ()=>{});
-    tl.load(base+'earth_clouds_1024.png', t=>{           // real cloud layer
-      t.encoding=THREE.sRGBEncoding;
-      clouds.material.map=t; clouds.material.alphaMap=t; clouds.material.transparent=true;
-      clouds.material.opacity=1; clouds.material.needsUpdate=true;
-    }, undefined, ()=>{});
-  })();
-
-  /* ---------- Optional: drop in a REAL satellite mesh ----------
-     No free, CORS-hostable Sentinel-2 GLB exists, so the built-in model above is used by
-     default. If you buy/export one (TurboSquid / CGTrader / Sketchfab -> .glb) put it in
-     /public and paste its URL below; it replaces the procedural satellite automatically. */
-  const SAT_MODEL_URL='';
-  if(SAT_MODEL_URL && THREE.GLTFLoader){
-    new THREE.GLTFLoader().load(SAT_MODEL_URL, g=>{
-      const m=g.scene;
-      m.traverse(o=>{ if(o.isMesh){ o.material.envMap=envMap; o.material.envMapIntensity=1.1; } });
-      // Recenter/scale to match the scene, then swap in:
-      const box=new THREE.Box3().setFromObject(m), sz=box.getSize(new THREE.Vector3());
-      const s=6/Math.max(sz.x,sz.y,sz.z); m.scale.setScalar(s);
-      const c=box.getCenter(new THREE.Vector3()); m.position.sub(c.multiplyScalar(s));
-      sat.clear(); sat.add(m);
-    }, undefined, ()=>{});
-  }
-
-  /* ---------- starfield ---------- */
-  const N=3400;const sg=new THREE.BufferGeometry();const p=new Float32Array(N*3),cc=new Float32Array(N*3);
-  for(let i=0;i<N;i++){const r=60+Math.random()*140,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);
-    p[i*3]=r*Math.sin(ph)*Math.cos(th);p[i*3+1]=r*Math.sin(ph)*Math.sin(th);p[i*3+2]=r*Math.cos(ph);
-    const t=Math.random();if(t>0.9){cc[i*3]=0.42;cc[i*3+1]=0.55;cc[i*3+2]=0.85;}
-    else{const v=0.6+Math.random()*0.4;cc[i*3]=v;cc[i*3+1]=v;cc[i*3+2]=v;}}
-  sg.setAttribute('position',new THREE.BufferAttribute(p,3));sg.setAttribute('color',new THREE.BufferAttribute(cc,3));
-  const stars=new THREE.Points(sg,new THREE.PointsMaterial({size:0.28,sizeAttenuation:true,vertexColors:true,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
-  scene.add(stars);
-
-  /* ---------- lights ---------- */
-  scene.add(new THREE.AmbientLight(0x22303f,0.42));
-  const key=new THREE.DirectionalLight(0xeaf1ff,2.3);key.position.set(6,7,5);scene.add(key);
-  const rim=new THREE.DirectionalLight(0x4a6fa5,1.5);rim.position.set(-7,-2,-5);scene.add(rim);
-  const pt=new THREE.PointLight(0x5B8AD1,1.0,30);pt.position.set(-3,1.5,4);scene.add(pt);
-
-  /* ---------- scroll-driven camera keyframes ---------- */
-  // each: camera position + look target, focusing a different sub-component
-  const KF=[
-    {p:new THREE.Vector3(0.5,0.6,14),  t:new THREE.Vector3(0.6,0,0)},      // 0 hero: whole sat + earth
-    {p:new THREE.Vector3(3.6,0.9,8),   t:new THREE.Vector3(4.2,0,0)},      // 1 work: solar array
-    {p:new THREE.Vector3(1.9,-0.6,9.5),t:new THREE.Vector3(0.1,-0.25,0.9)},// 2 case: instrument over earth
-    {p:new THREE.Vector3(0.2,-0.15,5), t:new THREE.Vector3(0,-0.25,1.63)}, // 3 vision: MSI lens (tight)
-    {p:new THREE.Vector3(-1.4,0.7,7.4),t:new THREE.Vector3(0,0.3,0.5)},    // 4 about: bus 3/4
-    {p:new THREE.Vector3(-1.0,2.5,6.8),t:new THREE.Vector3(-0.4,2.55,-0.25)},//5 quals: antenna/dish
-    {p:new THREE.Vector3(1.2,0.4,19),  t:new THREE.Vector3(0.6,-0.6,0)}    // 6 contact: pull far back
-  ];
-  const secIds=['hero','work','case','vision','about','quals','contact'];
+  // one callout lit per section — identical mapping to the original spec panels
+  var coIds=['co-platform','co-array','co-mission','co-msi','co-bus','co-xband',null];
 
   function easeInOut(t){return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
-  const desiredP=KF[0].p.clone(),desiredT=KF[0].t.clone();
-  const curP=KF[0].p.clone(),curT=KF[0].t.clone();
+  var desired={x:KF[0].f[0],y:KF[0].f[1],s:KF[0].s,ax:KF[0].a[0],ay:KF[0].a[1]};
+  var cur={x:desired.x,y:desired.y,s:desired.s,ax:desired.ax,ay:desired.ay};
 
-  const mouse={x:0,y:0},mAim={x:0,y:0};
-  if(!REDUCE)addEventListener('pointermove',e=>{mAim.x=e.clientX/innerWidth-0.5;mAim.y=e.clientY/innerHeight-0.5;});
+  var mouse={x:0,y:0},mAim={x:0,y:0};
+  if(!REDUCE)addEventListener('pointermove',function(e){
+    mAim.x=e.clientX/innerWidth-0.5;mAim.y=e.clientY/innerHeight-0.5;});
 
-  const secEls=secIds.map(id=>document.getElementById(id));
-  let FIT=1; function setFit(){const a=innerWidth/innerHeight; FIT=a>=1.2?1:(a>=0.85?1.28:1.7);}
+  var FIT=1; function setFit(){var a=innerWidth/innerHeight; FIT=a>=1.2?1:(a>=0.85?0.82:0.66);}
   setFit();
-  let activeSec=0;
+  var activeSec=0;
   function computeScroll(){
-    const mid=scrollY+innerHeight*0.5;
-    let idx=0;
-    for(let k=0;k<secEls.length;k++){ if(secEls[k].getBoundingClientRect().top+scrollY<=mid) idx=k; }
-    const r=secEls[idx].getBoundingClientRect();
-    const top=r.top+scrollY, bottom=r.bottom+scrollY;
-    let t=easeInOut(Math.min(Math.max((mid-top)/Math.max(1,bottom-top),0),1));
-    const j=Math.min(idx+1,KF.length-1);
-    desiredP.lerpVectors(KF[idx].p,KF[j].p,t);
-    desiredT.lerpVectors(KF[idx].t,KF[j].t,t);
+    var mid=scrollY+innerHeight*0.5, idx=0, k;
+    for(k=0;k<secEls.length;k++){ if(secEls[k].getBoundingClientRect().top+scrollY<=mid) idx=k; }
+    var r=secEls[idx].getBoundingClientRect();
+    var top=r.top+scrollY, bottom=r.bottom+scrollY;
+    var t=easeInOut(Math.min(Math.max((mid-top)/Math.max(1,bottom-top),0),1));
+    var j=Math.min(idx+1,KF.length-1);
+    var A=KF[idx],B=KF[j];
+    desired.x=A.f[0]+(B.f[0]-A.f[0])*t;
+    desired.y=A.f[1]+(B.f[1]-A.f[1])*t;
+    desired.s=A.s+(B.s-A.s)*t;
+    desired.ax=A.a[0]+(B.a[0]-A.a[0])*t;
+    desired.ay=A.a[1]+(B.a[1]-A.a[1])*t;
     if(idx!==activeSec){activeSec=idx;updateActive();}
   }
   function updateActive(){
-    document.querySelectorAll('.ticker button').forEach((b,idx)=>b.classList.toggle('on',idx===activeSec));
-    document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',+a.dataset.sec===activeSec));
+    document.querySelectorAll('.ticker button').forEach(function(b,idx){b.classList.toggle('on',idx===activeSec);});
+    document.querySelectorAll('nav a').forEach(function(a){a.classList.toggle('active',+a.dataset.sec===activeSec);});
+    document.querySelectorAll('.callout').forEach(function(c){c.classList.remove('on');});
+    var co=coIds[activeSec];
+    if(co) document.getElementById(co).classList.add('on');
+    // Annex B (tasking code) lights on the full-sheet views: hero + contact
+    if(activeSec===0||activeSec===6) document.getElementById('co-code').classList.add('on');
   }
   addEventListener('scroll',computeScroll,{passive:true});
 
   /* ticker + nav clicks */
-  document.querySelectorAll('.ticker button').forEach(b=>b.addEventListener('click',()=>{
-    document.getElementById(b.dataset.go).scrollIntoView({behavior:REDUCE?'auto':'smooth'});
-  }));
+  document.querySelectorAll('.ticker button').forEach(function(b){b.addEventListener('click',function(){
+    document.getElementById(b.dataset.go).scrollIntoView({behavior:REDUCE?'auto':'smooth'});});});
 
   /* ---------- reveal panels ---------- */
-  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:0.25});
-  document.querySelectorAll('.panel').forEach(el=>io.observe(el));
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('in');});},{threshold:0.25});
+  document.querySelectorAll('.panel').forEach(function(el){io.observe(el);});
 
   /* ---------- name split ---------- */
-  const nameEl=document.getElementById('name');const raw=nameEl.textContent;nameEl.setAttribute('aria-label',raw);
+  var nameEl=document.getElementById('name');var raw=nameEl.textContent;nameEl.setAttribute('aria-label',raw);
   nameEl.innerHTML=raw.split(' ').map(function(word){
     var chars=word.split('').map(function(c){ return '<span class="char" aria-hidden="true">'+c+'</span>'; }).join('');
     return '<span class="word">'+chars+'</span>';
   }).join(' ');
 
   /* ---------- render loop ---------- */
-  const clock=new THREE.Clock();
-  function frame(){
-    const tm=clock.getElapsedTime();
-    if(!REDUCE){
-      sat.rotation.y+=0.0014;
-      sat.position.y=Math.sin(tm*0.6)*0.1;
-      antG.rotation.z=Math.sin(tm*0.5)*0.02;
-      stars.rotation.y=tm*0.005;
-      earth.rotation.y+=0.0004; clouds.rotation.y+=0.00058;
-      ring.material.color.setHSL(0.6,0.55,0.6+Math.sin(tm*2.4)*0.12);
-      mouse.x+=(mAim.x-mouse.x)*0.05;mouse.y+=(mAim.y-mouse.y)*0.05;
-    }
-    // fit distance: pull camera back on narrow/portrait screens
-    const fp=desiredP.clone().sub(desiredT).multiplyScalar(FIT).add(desiredT);
+  var start=performance.now();
+  function frame(now){
+    var tm=(now-start)/1000;
+    if(!REDUCE){ mouse.x+=(mAim.x-mouse.x)*0.05; mouse.y+=(mAim.y-mouse.y)*0.05; }
+    // slice-mode visible user-rect (viewport coverage of the sheet)
+    var cover=Math.max(innerWidth/VBW,innerHeight/VBH);
+    var visW=innerWidth/cover, visH=innerHeight/cover;
+    var offX=(VBW-visW)/2, offY=(VBH-visH)/2;
     // breathing dolly (subtle zoom in/out while parked)
-    const breathe=Math.sin(tm*0.5)*0.18;
-    const dir=new THREE.Vector3().subVectors(desiredT,fp).normalize();
-    const bp=fp.addScaledVector(dir,breathe);
-    bp.x+=mouse.x*1.4; bp.y+=-mouse.y*0.9;
-    curP.lerp(bp,0.06); curT.lerp(desiredT,0.06);
-    camera.position.copy(curP); camera.lookAt(curT);
-    updateSpecPanel();
-    renderer.render(scene,camera);
+    var breathe=REDUCE?0:Math.sin(tm*0.5)*0.02;
+    var tgt={
+      x:desired.x + (REDUCE?0:mouse.x*-26/desired.s),
+      y:desired.y + (REDUCE?0:mouse.y*-16/desired.s),
+      s:Math.max(0.2,(desired.s+breathe)*FIT),
+      ax:desired.ax, ay:desired.ay
+    };
+    var L=REDUCE?1:0.06;
+    cur.x+=(tgt.x-cur.x)*L; cur.y+=(tgt.y-cur.y)*L; cur.s+=(tgt.s-cur.s)*L;
+    cur.ax+=(tgt.ax-cur.ax)*L; cur.ay+=(tgt.ay-cur.ay)*L;
+    var ux=offX+cur.ax*visW, uy=offY+cur.ay*visH;
+    rig.setAttribute('transform','translate('+ux+' '+uy+') scale('+cur.s+') translate('+(-cur.x)+' '+(-cur.y)+')');
     requestAnimationFrame(frame);
   }
-  frame(); computeScroll(); updateActive();
+  requestAnimationFrame(frame); computeScroll(); updateActive();
 
-  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));setFit();computeScroll();});
+  addEventListener('resize',function(){setFit();computeScroll();});
+
+  // ---------- telemetry line: live UTC clock + session elapsed ----------
+  var teleEl=document.getElementById('tele');
+  var teleStart=Date.now();
+  function pad(n){return String(n).padStart(2,'0');}
+  function updateTele(){
+    var now=new Date();
+    var utc=pad(now.getUTCHours())+':'+pad(now.getUTCMinutes())+':'+pad(now.getUTCSeconds());
+    var el=Date.now()-teleStart, s=Math.floor(el/1000);
+    var t=pad(Math.floor(s/3600))+':'+pad(Math.floor(s/60)%60)+':'+pad(s%60);
+    teleEl.innerHTML='UTC <b>'+utc+'</b>&nbsp;&nbsp;·&nbsp;&nbsp;SESSION T+ <b>'+t+'</b>';
+    teleEl.style.opacity=1;
+  }
+  updateTele(); setInterval(updateTele, 1000);
 
   /* ---------- intro ---------- */
-  const loader=document.getElementById('loader');
-  gsap.to('#loadFill',{width:'100%',duration:1.1,ease:'power1.inOut',onComplete:()=>{
-    loader.style.opacity=0;setTimeout(()=>loader.style.display='none',600);runIntro();}});
+  var loader=document.getElementById('loader');
+  var fill=document.getElementById('loadFill');
+  requestAnimationFrame(function(){fill.classList.add('go');});
+  setTimeout(function(){
+    loader.style.opacity=0;setTimeout(function(){loader.style.display='none';},600);runIntro();
+  },1100);
   function runIntro(){
-    if(REDUCE){stars.material.opacity=0.85;gsap.set(nameEl.querySelectorAll('.char'),{opacity:1,filter:'blur(0px)',y:0});
-      gsap.set(['#role','#eyebrow','#cue'],{opacity:1,y:0});return;}
-    const tl=gsap.timeline();
-    gsap.set(sat.scale,{x:0.72,y:0.72,z:0.72});
-    tl.to(stars.material,{opacity:0.85,duration:1.4,ease:'power1.out'},0)
-      .to(sat.scale,{x:1,y:1,z:1,duration:1.8,ease:'expo.out'},0)
-      .fromTo(sat.rotation,{y:-1.3},{y:-0.5,duration:2.0,ease:'expo.out'},0)
-      .to('#eyebrow',{opacity:1,duration:0.6},0.7)
-      .to(nameEl.querySelectorAll('.char'),{opacity:1,filter:'blur(0px)',y:0,duration:0.7,ease:'expo.out',stagger:0.03},0.95)
-      .to('#role',{opacity:1,y:0,duration:0.6},1.7)
-      .to('#cue',{opacity:0.7,duration:0.6},2.0);
+    var chars=nameEl.querySelectorAll('.char');
+    if(REDUCE){
+      chars.forEach(function(c){c.classList.add('in');});
+      document.getElementById('eyebrow').classList.add('in');
+      document.getElementById('role').classList.add('in');
+      document.getElementById('cue').classList.add('in');
+      return;
+    }
+    setTimeout(function(){document.getElementById('eyebrow').classList.add('in');},700);
+    chars.forEach(function(c,i){setTimeout(function(){c.classList.add('in');},950+i*30);});
+    setTimeout(function(){document.getElementById('role').classList.add('in');},1700);
+    setTimeout(function(){document.getElementById('cue').classList.add('in');},2000);
   }
 })();
-
-/* =====================================================================
-   PRODUCTION SWAP: using a REAL Sentinel-2 GLB in your own build
-   ---------------------------------------------------------------------
-   This preview models the satellite in code (the artifact sandbox blocks
-   loading external .glb files). In your Next.js / Vite build you can drop
-   in a real mesh. Put the .glb in /public and:
-
-     import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-     const loader = new GLTFLoader();
-     loader.load('/models/sentinel2.glb', (gltf) => {
-       const model = gltf.scene;
-       model.traverse(o => { if (o.isMesh) o.material.envMap = envMap; });
-       model.scale.set(1,1,1);
-       scene.add(model);            // replace the `sat` group with this
-     });
-
-   Or with react-three-fiber + drei:
-     const { scene } = useGLTF('/models/sentinel2.glb');
-
-   Keep every KF[] target aimed at the corresponding part of the real
-   model (recenter targets once you see its pivot/scale).
-   ===================================================================== */
 </script>
 <div id="lightbox"><img alt="Enlarged screenshot"></div>
 <script>
@@ -922,7 +874,7 @@
 </script>
 <script>
 (function(){
-  var ESSAY_B64 = "PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9IlVURi04IiAvPgo8bWV0YSBuYW1lPSJ2aWV3cG9ydCIgY29udGVudD0id2lkdGg9ZGV2aWNlLXdpZHRoLCBpbml0aWFsLXNjYWxlPTEuMCIgLz4KPHRpdGxlPldoZXJlIHRvIExvb2ssIE5vdCBXaGVyZSB0byBTaG9vdCB8IExpYW0gTmljaGVsZTwvdGl0bGU+CjxtZXRhIG5hbWU9ImRlc2NyaXB0aW9uIiBjb250ZW50PSJPbiB0aGUgbGluZSBiZXR3ZWVuIHVuZGVyc3RhbmRpbmcgYW5kIHRhcmdldGluZyBpbiBkZWZlbmNlIHNvZnR3YXJlLiIgLz4KPGxpbmsgcmVsPSJwcmVjb25uZWN0IiBocmVmPSJodHRwczovL2ZvbnRzLmdvb2dsZWFwaXMuY29tIiAvPgo8bGluayByZWw9InByZWNvbm5lY3QiIGhyZWY9Imh0dHBzOi8vZm9udHMuZ3N0YXRpYy5jb20iIGNyb3Nzb3JpZ2luIC8+CjxsaW5rIGhyZWY9Imh0dHBzOi8vZm9udHMuZ29vZ2xlYXBpcy5jb20vY3NzMj9mYW1pbHk9TW9udHNlcnJhdDp3Z2h0QDMwMDs0MDA7NTAwOzYwMDs4MDA7OTAwJmRpc3BsYXk9c3dhcCIgcmVsPSJzdHlsZXNoZWV0IiAvPgo8c3R5bGU+CiAgOnJvb3R7CiAgICAtLWJnOiMwNzBCMTI7IC0tdGV4dDojRTdFQUYwOyAtLW11dGVkOiM2RTdBOEM7IC0tc29mdDojYWFiM2MwOwogICAgLS1ibHVlOiM1QjhBRDE7IC0tYmx1ZS1icmlnaHQ6I0E5QzZGMDsgLS1pY2U6IzdGQThERTsgLS1saW5lOnJnYmEoOTEsMTM4LDIwOSwuMjIpOwogIH0KICAqe21hcmdpbjowO3BhZGRpbmc6MDtib3gtc2l6aW5nOmJvcmRlci1ib3g7fQogIGh0bWx7c2Nyb2xsLWJlaGF2aW9yOnNtb290aDt9CiAgYm9keXtiYWNrZ3JvdW5kOnZhcigtLWJnKTtjb2xvcjp2YXIoLS10ZXh0KTtmb250LWZhbWlseTonTW9udHNlcnJhdCcsc2Fucy1zZXJpZjsKICAgIGxpbmUtaGVpZ2h0OjEuNzU7LXdlYmtpdC1mb250LXNtb290aGluZzphbnRpYWxpYXNlZDt9CiAgLmJne3Bvc2l0aW9uOmZpeGVkO2luc2V0OjA7ei1pbmRleDowO3BvaW50ZXItZXZlbnRzOm5vbmU7CiAgICBiYWNrZ3JvdW5kOnJhZGlhbC1ncmFkaWVudChlbGxpcHNlIGF0IDUwJSAtMTAlLHJnYmEoOTEsMTM4LDIwOSwuMTApLHRyYW5zcGFyZW50IDU1JSk7fQogIC5ncmFpbntwb3NpdGlvbjpmaXhlZDtpbnNldDowO3otaW5kZXg6MDtwb2ludGVyLWV2ZW50czpub25lO29wYWNpdHk6LjA0O21peC1ibGVuZC1tb2RlOm92ZXJsYXk7CiAgICBiYWNrZ3JvdW5kLWltYWdlOnVybCgiZGF0YTppbWFnZS9zdmcreG1sLCUzQ3N2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxMjAnIGhlaWdodD0nMTIwJyUzRSUzQ2ZpbHRlciBpZD0nbiclM0UlM0NmZVR1cmJ1bGVuY2UgdHlwZT0nZnJhY3RhbE5vaXNlJyBiYXNlRnJlcXVlbmN5PScuOScgbnVtT2N0YXZlcz0nMicvJTNFJTNDL2ZpbHRlciUzRSUzQ3JlY3Qgd2lkdGg9JzEwMCUyNScgaGVpZ2h0PScxMDAlMjUnIGZpbHRlcj0ndXJsKCUyM24pJy8lM0UlM0Mvc3ZnJTNFIik7fQoKICAud3JhcHtwb3NpdGlvbjpyZWxhdGl2ZTt6LWluZGV4OjE7bWF4LXdpZHRoOjY4MHB4O21hcmdpbjowIGF1dG87cGFkZGluZzowIDI0cHg7fQoKICBoZWFkZXJ7ZGlzcGxheTpmbGV4O2p1c3RpZnktY29udGVudDpzcGFjZS1iZXR3ZWVuO2FsaWduLWl0ZW1zOmNlbnRlcjtwYWRkaW5nOjMwcHggMDt9CiAgaGVhZGVyIC5iYWNre2ZvbnQtZmFtaWx5OidNb250c2VycmF0JyxzYW5zLXNlcmlmO2ZvbnQtd2VpZ2h0OjYwMDtmb250LXNpemU6MTJweDtsZXR0ZXItc3BhY2luZzoxLjVweDtjb2xvcjp2YXIoLS1tdXRlZCk7CiAgICB0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7fQogIGhlYWRlciAudGFne2ZvbnQtZmFtaWx5OidNb250c2VycmF0JyxzYW5zLXNlcmlmO2ZvbnQtd2VpZ2h0OjYwMDtmb250LXNpemU6MTFweDtsZXR0ZXItc3BhY2luZzoyLjVweDtjb2xvcjp2YXIoLS1ibHVlKTt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7fQoKICBhcnRpY2xle3BhZGRpbmc6NDBweCAwIDMwcHg7fQogIC5leWVicm93e2ZvbnQtZmFtaWx5OidNb250c2VycmF0JyxzYW5zLXNlcmlmO2ZvbnQtd2VpZ2h0OjYwMDtmb250LXNpemU6MTFweDtsZXR0ZXItc3BhY2luZzoyLjVweDtjb2xvcjp2YXIoLS1tdXRlZCk7CiAgICB0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7ZGlzcGxheTpmbGV4O2FsaWduLWl0ZW1zOmNlbnRlcjtnYXA6MTBweDttYXJnaW4tYm90dG9tOjIycHg7fQogIC5leWVicm93IC5kb3R7d2lkdGg6NnB4O2hlaWdodDo2cHg7YmFja2dyb3VuZDp2YXIoLS1ibHVlKTtib3JkZXItcmFkaXVzOjUwJTtib3gtc2hhZG93OjAgMCAxMnB4IHZhcigtLWJsdWUpO30KICBoMXtmb250LWZhbWlseTonTW9udHNlcnJhdCcsc2Fucy1zZXJpZjtmb250LXdlaWdodDo5MDA7dGV4dC10cmFuc2Zvcm06dXBwZXJjYXNlOwogICAgZm9udC1zaXplOmNsYW1wKDIuMXJlbSw1LjV2dywzLjRyZW0pO2xpbmUtaGVpZ2h0OjEuMDI7bGV0dGVyLXNwYWNpbmc6LS4wMWVtO21hcmdpbi1ib3R0b206MThweDt9CiAgLmJ5bGluZXtmb250LWZhbWlseTonTW9udHNlcnJhdCcsc2Fucy1zZXJpZjtmb250LXdlaWdodDo2MDA7Zm9udC1zaXplOjEycHg7bGV0dGVyLXNwYWNpbmc6MXB4O2NvbG9yOnZhcigtLW11dGVkKTsKICAgIHRleHQtdHJhbnNmb3JtOnVwcGVyY2FzZTtwYWRkaW5nLWJvdHRvbTozMHB4O21hcmdpbi1ib3R0b206MzRweDtib3JkZXItYm90dG9tOjFweCBzb2xpZCB2YXIoLS1saW5lKTt9CiAgLmJ5bGluZSBie2NvbG9yOnZhcigtLWljZSk7Zm9udC13ZWlnaHQ6NTAwO30KCiAgYXJ0aWNsZSBwe2ZvbnQtc2l6ZToxNy41cHg7Y29sb3I6dmFyKC0tc29mdCk7bWFyZ2luLWJvdHRvbToyMnB4O30KICBhcnRpY2xlIHAubGVhZHtmb250LXNpemU6MjBweDtjb2xvcjp2YXIoLS10ZXh0KTtsaW5lLWhlaWdodDoxLjY7fQogIGFydGljbGUgcCBzdHJvbmd7Y29sb3I6dmFyKC0tdGV4dCk7Zm9udC13ZWlnaHQ6NjAwO30KICBhcnRpY2xlIHA6Zmlyc3Qtb2YtdHlwZTo6Zmlyc3QtbGV0dGVye2ZvbnQtZmFtaWx5OidNb250c2VycmF0JyxzYW5zLXNlcmlmO2ZvbnQtd2VpZ2h0OjgwMDsKICAgIGZsb2F0OmxlZnQ7Zm9udC1zaXplOjMuNGVtO2xpbmUtaGVpZ2h0Oi44MjtwYWRkaW5nOjZweCAxMnB4IDAgMDtjb2xvcjp2YXIoLS1ibHVlLWJyaWdodCk7fQoKICAucHVsbHtib3JkZXItbGVmdDoycHggc29saWQgdmFyKC0tYmx1ZSk7cGFkZGluZzo2cHggMCA2cHggMjJweDttYXJnaW46MzBweCAwOwogICAgZm9udC1mYW1pbHk6J01vbnRzZXJyYXQnLHNhbnMtc2VyaWY7Zm9udC13ZWlnaHQ6ODAwO3RleHQtdHJhbnNmb3JtOnVwcGVyY2FzZTsKICAgIGZvbnQtc2l6ZTpjbGFtcCgxLjJyZW0sMi42dncsMS41NXJlbSk7bGluZS1oZWlnaHQ6MS4yO2NvbG9yOnZhcigtLXRleHQpO2xldHRlci1zcGFjaW5nOi4wMWVtO30KCiAgZm9vdGVye2JvcmRlci10b3A6MXB4IHNvbGlkIHZhcigtLWxpbmUpO21hcmdpbi10b3A6MjBweDtwYWRkaW5nOjMwcHggMCA2MHB4OwogICAgZm9udC1mYW1pbHk6J01vbnRzZXJyYXQnLHNhbnMtc2VyaWY7Zm9udC13ZWlnaHQ6NjAwO2ZvbnQtc2l6ZToxMnB4O2xldHRlci1zcGFjaW5nOjFweDtjb2xvcjp2YXIoLS1tdXRlZCk7CiAgICBkaXNwbGF5OmZsZXg7anVzdGlmeS1jb250ZW50OnNwYWNlLWJldHdlZW47ZmxleC13cmFwOndyYXA7Z2FwOjE0cHg7dGV4dC10cmFuc2Zvcm06dXBwZXJjYXNlO30KICBmb290ZXIgYXtjb2xvcjp2YXIoLS1pY2UpO3RleHQtZGVjb3JhdGlvbjpub25lO3RyYW5zaXRpb246Y29sb3IgLjJzO30KICBmb290ZXIgYTpob3Zlcntjb2xvcjp2YXIoLS1ibHVlLWJyaWdodCk7fQoKICBAbWVkaWEgKHByZWZlcnMtcmVkdWNlZC1tb3Rpb246cmVkdWNlKXtodG1se3Njcm9sbC1iZWhhdmlvcjphdXRvO319Cjwvc3R5bGU+CjwvaGVhZD4KPGJvZHk+CjxkaXYgY2xhc3M9ImJnIj48L2Rpdj4KPGRpdiBjbGFzcz0iZ3JhaW4iPjwvZGl2PgoKPGRpdiBjbGFzcz0id3JhcCI+CiAgPGhlYWRlcj4KICAgIDxzcGFuIGNsYXNzPSJiYWNrIj5MaWFtIE5pY2hlbGU8L3NwYW4+CiAgICA8c3BhbiBjbGFzcz0idGFnIj5Xcml0aW5nPC9zcGFuPgogIDwvaGVhZGVyPgoKICA8YXJ0aWNsZT4KICAgIDxkaXYgY2xhc3M9ImV5ZWJyb3ciPjxzcGFuIGNsYXNzPSJkb3QiPjwvc3Bhbj5PbiBkZWZlbmNlIHNvZnR3YXJlPC9kaXY+CiAgICA8aDE+V2hlcmUgdG8gTG9vaywgTm90IFdoZXJlIHRvIFNob290PC9oMT4KICAgIDxkaXYgY2xhc3M9ImJ5bGluZSI+TGlhbSBOaWNoZWxlICZuYnNwO8K3Jm5ic3A7IDxiPjIwMjY8L2I+ICZuYnNwO8K3Jm5ic3A7IDUgbWluIHJlYWQ8L2Rpdj4KCiAgICA8cCBjbGFzcz0ibGVhZCI+SSBidWlsZCBzb2Z0d2FyZSBmb3IgZGVmZW5jZSwgYW5kIHBlb3BsZSBzb21ldGltZXMgYXNzdW1lIHRoYXQgbWVhbnMgSSBidWlsZCB3ZWFwb25zLiBJdCBkb2Vzbid0LCBhbmQgdGhlIGRpc3RpbmN0aW9uIGlzIHRoZSB3aG9sZSBwb2ludC48L3A+CgogICAgPHA+VGhlcmUncyBhIGxpbmUgcnVubmluZyB0aHJvdWdoIG1pbGl0YXJ5IHNvZnR3YXJlIHRoYXQgZG9lc24ndCBnZXQgdGFsa2VkIGFib3V0IGVub3VnaC4gT24gb25lIHNpZGUgaXMgdW5kZXJzdGFuZGluZzogd29ya2luZyBvdXQgd2hhdCdzIGluIGEgcGxhY2UsIHdoYXQncyB0aGVyZSBub3cgdGhhdCB3YXNuJ3QgeWVzdGVyZGF5LCB3aGF0IGEgcGlsZSBvZiBzZW5zb3IgZGF0YSBhY3R1YWxseSBtZWFucy4gT24gdGhlIG90aGVyIHNpZGUgaXMgYWN0aW9uOiBkZWNpZGluZyB3aGF0IHRvIGRvIGFib3V0IGl0LCBhbmQgaW5jcmVhc2luZ2x5LCBkZWNpZGluZyBhdXRvbWF0aWNhbGx5LiBNb3N0IG9mIHRoZSBpbnRlcmVzdGluZywgZ2VudWluZWx5IG1vZGVybmlzaW5nIHdvcmsgc2l0cyBvbiB0aGUgdW5kZXJzdGFuZGluZyBzaWRlLiBNb3N0IG9mIHRoZSByaXNrIHNpdHMgb24gdGhlIG90aGVyLjwvcD4KCiAgICA8cD5XaGVuIEkgYnVpbHQgVkFOVEFHRSwgSSB3cm90ZSB0aGUgYm91bmRhcnkgaW50byB0aGUgUkVBRE1FIGJlZm9yZSBJIHdyb3RlIGhhbGYgdGhlIGZlYXR1cmVzLiBJdCByZXBvcnRzIHdoYXQncyBwcmVzZW50IGFuZCB3aGF0IGNoYW5nZWQgaW4gb3ZlcmhlYWQgaW1hZ2VyeSwgYW5kIG5vdGhpbmcgcGFzdCB0aGF0LiBObyB0YXJnZXRpbmcsIG5vIGZpcmUtY29udHJvbCwgbm8gc3RyaWtlIHBsYW5uaW5nLCBubyBzZW5zb3ItdG8tc2hvb3RlciBhdXRvbWF0aW9uLiBJIGdldCB3aHkgdGhhdCBtaWdodCByZWFkIGFzIGEgZGlzY2xhaW1lci4gSXQgaXNuJ3QuIEl0J3MgYSBkZXNpZ24gZGVjaXNpb24sIGFuZCBpdCBjaGFuZ2VkIHdoYXQgSSBidWlsdC48L3A+CgogICAgPHA+VGhlIGluc3RpbmN0IGJlaGluZCB0aGF0IGJvdW5kYXJ5IGNvbWVzIGZyb20gaG93IEkgYWN0dWFsbHkgd29yaywgbm90IGZyb20gYSB2YWx1ZXMgc3RhdGVtZW50IEkgYm9sdGVkIG9uIGFmdGVyd2FyZC4gTXkgc3Ryb25nZXN0IHNraWxsIGlzbid0IGFueSBvbmUgbGFuZ3VhZ2Ugb3IgZnJhbWV3b3JrLCBpdCdzIGRhdGEgc2NpZW5jZTogdGFraW5nIGEgcm91Z2gsIGhhbGYtZm9ybWVkIGlkZWEgbm9ib2R5J3MgYnVpbHQgY2xlYW5seSB5ZXQgYW5kIHR1cm5pbmcgaXQgaW50byBhIHN5c3RlbSB0aGF0IGhvbGRzIHVwLiBJIGxpa2UgYnVpbGRpbmcgYXJvdW5kIGlkZWFzIHRoYXQgZG9uJ3QgYWxyZWFkeSBoYXZlIGFuIG9mZi10aGUtc2hlbGYgYW5zd2VyLCBhbmQgdGhhdCBoYWJpdCBjb21lcyB3aXRoIGEgY29zdCwgd2hpY2ggaXMgdGhhdCBJIGRvbid0IHRydXN0IGFueXRoaW5nIEkgYnVpbGQgdW50aWwgSSd2ZSB0cmllZCBoYXJkIHRvIGJyZWFrIGl0LiBTdHJlc3MgdGVzdGluZyBhdGUgbW9yZSBob3VycyBvbiBWQU5UQUdFIHRoYW4gdGhlIG9yaWdpbmFsIGJ1aWxkIGRpZC4gRmVlZCBpdCBhIGNsb3VkeSBzY2VuZS4gRmVlZCBpdCBhIHNoYWRvdyB0aGF0IGxvb2tzIGxpa2UgYSBodWxsIGF0IGxvdyB0aWRlLiBUdXJuIHRoZSBkZXRlY3Rpb24gdGhyZXNob2xkIGRvd24gdW50aWwgaXQgc3RhcnRzIGd1ZXNzaW5nIGF0IHRoaW5ncyB0aGF0IGFyZW4ndCB0aGVyZS4gWW91IGxlYXJuIHdoYXQgYSBzeXN0ZW0gYWN0dWFsbHkgZG9lcyB1bmRlciBwcmVzc3VyZSwgbm90IHdoYXQgaXQgZG9lcyBpbiB0aGUgZGVtby48L3A+CgogICAgPHA+VGhhdCBoYWJpdCBpcyBleGFjdGx5IHdoeSB0aGUgdHdvIGxheWVycyBjYW4ndCBiZSB0cmVhdGVkIHRoZSBzYW1lLiBXaGVuIGEgc3lzdGVtJ3Mgam9iIGlzIHRvIGhlbHAgc29tZW9uZSB1bmRlcnN0YW5kIGEgc2l0dWF0aW9uLCB5b3UgY2FuIHB1c2ggaXQgdW50aWwgaXQgYnJlYWtzIGFuZCB3YWxrIGF3YXkgd2l0aCBzb21ldGhpbmcgdXNlZnVsLiBOb3cgeW91IGtub3cgaXQgZ29lcyBxdWlldCBvbiBoYXp5IGltYWdlcnksIG9yIGZsYWdzIGEgc2hpcHBpbmcgY29udGFpbmVyIGFzIGEgdmVzc2VsLCBhbmQgeW91IGRlc2lnbiBhcm91bmQgdGhhdC4gQSBjaGFuZ2UtZGV0ZWN0aW9uIHJlc3VsdCB0aGF0IHNheXMgc29tZXRoaW5nIG1vdmVkIGhlcmUsIGdvIGxvb2ssIGlzIHN0aWxsIHdvcnRoIGhhdmluZyBldmVuIHdoZW4gaXQncyB3cm9uZyBzb21ldGltZXMsIGJlY2F1c2UgYSBwZXJzb24gY2hlY2tzIGl0IGJlZm9yZSBhbnl0aGluZyBoYXBwZW5zLiBSdW4gdGhlIHNhbWUgc3RyZXNzIHRlc3Qgb24gYSBzeXN0ZW0gYnVpbHQgdG8gaGVscCBkZWNpZGUgYSBzdHJpa2UsIGFuZCBldmVyeSBlZGdlIGNhc2UgeW91IGZpbmQgc3RvcHMgYmVpbmcgYSBsaW5lIGluIGEgdGVzdCByZXBvcnQuIEl0IGJlY29tZXMgYSB3YXkgcGVvcGxlIGNvdWxkIGRpZS4gVGhlIGZhbHNlIHBvc2l0aXZlIHRoYXQgY29zdHMgYW4gYW5hbHlzdCB0d28gbWludXRlcyB3YWxraW5nIG92ZXIgdG8gY2hlY2sgYSBzY3JlZW4gY29zdHMgc29tZXRoaW5nIGVsc2UgZW50aXJlbHkgdGhyZWUgc3RlcHMgZG93bnN0cmVhbS4gU2FtZSBraW5kIG9mIGJ1Zy4gTm93aGVyZSBuZWFyIHRoZSBzYW1lIHdlaWdodC48L3A+CgogICAgPGRpdiBjbGFzcz0icHVsbCI+VGhlIGhhcmRlc3QgcXVlc3Rpb24gaXNuJ3QgdGVjaG5pY2FsLiBJdCdzIHdoZXJlIHRoZSBodW1hbiBzdGF5cyBpbiB0aGUgbG9vcC48L2Rpdj4KCiAgICA8cD5JJ20gbm90IHNxdWVhbWlzaCBhYm91dCBkZWZlbmNlLiBJIHRoaW5rIGEgc2VyaW91cywgY2FwYWJsZSwgbW9kZXJuIG1pbGl0YXJ5IGlzIHNvbWV0aGluZyBteSBjb250aW5lbnQgbmVlZHMgYW5kIG1vc3RseSBkb2Vzbid0IGhhdmUgaW4gc29mdHdhcmUgdGVybXMuIEEgbG90IG9mIHdoYXQgcnVucyB0b2RheSBpcyBzbG93LCBvbGQsIGFuZCB5ZWFycyBiZWhpbmQgdGhlIHRvb2xzIGl0IHNob3VsZCBiZSwgYW5kIEkgd2FudCB0byBzcGVuZCBteSBjYXJlZXIgY2hhbmdpbmcgdGhhdC4gVGhhdCBpbmNsdWRlcyBoYXJkLWVkZ2VkIHdvcmsuIFdoYXQgSSB3b24ndCBkbyBpcyBwcmV0ZW5kIHRoZSBoYXJkZXN0IHF1ZXN0aW9uIGhlcmUgaXMgYSB0ZWNobmljYWwgb25lLiBJdCdzIHdoZXJlIHRoZSBodW1hbiBzdGF5cyBpbiB0aGUgbG9vcCwgYW5kIEkgdGhpbmsgdGhlIGFuc3dlciBpcyBzaW1wbGU6IG9uIGFueSBkZWNpc2lvbiB0aGF0IGVuZHMgYSBsaWZlLjwvcD4KCiAgICA8cD5UaGF0J3Mgbm90IGEgZmFzaGlvbmFibGUgcG9zaXRpb24gaW4gYSBmaWVsZCB0aGF0IGtlZXBzIHVzaW5nIHRoZSB3b3JkICJhdXRvbm9teSIgbGlrZSBpdCdzIG9idmlvdXNseSBnb29kLiBBdXRvbm9teSBpcyBncmVhdCBmb3IgYSBsb3Qgb2YgdGhpbmdzLiBJdCdzIGdyZWF0IGZvciBwdWxsaW5nIGltYWdlcnksIHRpbGluZyBpdCwgcnVubmluZyBkZXRlY3Rpb24sIHdhdGNoaW5nIGFuIGFyZWEgc28gYSBwZXJzb24gZG9lc24ndCBoYXZlIHRvIHNpdCBhbmQgc3RhcmUgYXQgYSBzY3JlZW4uIEl0IGlzIG5vdCBzb21ldGhpbmcgSSB3YW50IGFueXdoZXJlIG5lYXIgdGhlIHRyaWdnZXIsIGFuZCAidGhlIGVuZW15IHdpbGwgZG8gaXQsIHNvIHdlIGhhdmUgdG8iIGlzbid0IGEgZ29vZCBlbm91Z2ggcmVhc29uIHRvIGhhbmQgdGhhdCBkZWNpc2lvbiB0byBhIG1vZGVsIEkndmUgc3RyZXNzIHRlc3RlZCBhbmQgc3RpbGwgY2FuJ3QgZnVsbHkgdHJ1c3QuPC9wPgoKICAgIDxwPlNvIHRoZSBzb2Z0d2FyZSBJIHdhbnQgdG8gYnVpbGQgaXMgdGhlIHVuZGVyc3RhbmRpbmcgbGF5ZXI6IHRoZSBwYXJ0IHRoYXQgdGFrZXMgYSBmbG9vZCBvZiByYXcgc2lnbmFsIGFuZCBoYW5kcyBhIHBlcnNvbiBzb21ldGhpbmcgY2xlYXIgZW5vdWdoIHRvIGFjdCBvbiwgZmFzdCBlbm91Z2ggdG8gbWF0dGVyLCBhbmQgaG9uZXN0IGFib3V0IGl0cyBvd24gY29uZmlkZW5jZSByYXRoZXIgdGhhbiBwcmV0ZW5kaW5nIGl0IGRvZXNuJ3QgaGF2ZSBhbnkuIFRoYXQncyB0aGUgbGF5ZXIgSSB3YW50IHRvIHNwZW5kIGEgY2FyZWVyIG9uLiBJdCdzIGJpZ2dlciB0aGFuIG1vc3QgcGVvcGxlIHRoaW5rLCBhbmQgbW9zdCBvZiB3aGF0IGFscmVhZHkgZXhpc3RzIGlzIHdvcnNlIHRoYW4gaXQgc2hvdWxkIGJlLiBUaGUgdGFyZ2V0aW5nIGxheWVyIGNhbiB3YWl0IGZvciBhIGhhcmRlciBjb252ZXJzYXRpb24gdGhhbiBhIHBvcnRmb2xpby48L3A+CgogICAgPHA+SWYgeW91J3JlIGhpcmluZyBmb3IgdGhpcyBraW5kIG9mIHdvcmsgYW5kIHRoaXMgcmVhZHMgYXMgbmFpdmUgdG8geW91LCB3ZSdyZSBwcm9iYWJseSBub3QgdGhlIHJpZ2h0IGZpdC4gSWYgaXQgcmVhZHMgYXMgcmlnaHQsIG9yIGF0IGxlYXN0IHdvcnRoIGEgbG9uZ2VyIGNvbnZlcnNhdGlvbiwgZ2V0IGluIHRvdWNoLjwvcD4KICA8L2FydGljbGU+CgogIDxmb290ZXI+CiAgICA8c3Bhbj5MaWFtIE5pY2hlbGUgwrcgRGVmZW5jZSBTb2Z0d2FyZTwvc3Bhbj4KICAgIDxzcGFuPjxhIGhyZWY9Im1haWx0bzpsaWFtbmljaGVsZUBpY2xvdWQuY29tIj5saWFtbmljaGVsZUBpY2xvdWQuY29tPC9hPiDCtyA8YSBocmVmPSJodHRwczovL2dpdGh1Yi5jb20vaWtlcnNjb2RlIiB0YXJnZXQ9Il9ibGFuayIgcmVsPSJub29wZW5lciI+Z2l0aHViLmNvbS9pa2Vyc2NvZGU8L2E+PC9zcGFuPgogIDwvZm9vdGVyPgo8L2Rpdj4KPC9ib2R5Pgo8L2h0bWw+Cg==";
+  var ESSAY_B64 = "PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9IlVURi04IiAvPgo8bWV0YSBuYW1lPSJ2aWV3cG9ydCIgY29udGVudD0id2lkdGg9ZGV2aWNlLXdpZHRoLCBpbml0aWFsLXNjYWxlPTEuMCIgLz4KPHRpdGxlPldoZXJlIHRvIExvb2ssIE5vdCBXaGVyZSB0byBTaG9vdCB8IExpYW0gTmljaGVsZTwvdGl0bGU+CjxtZXRhIG5hbWU9ImRlc2NyaXB0aW9uIiBjb250ZW50PSJPbiB0aGUgbGluZSBiZXR3ZWVuIHVuZGVyc3RhbmRpbmcgYW5kIHRhcmdldGluZyBpbiBkZWZlbmNlIHNvZnR3YXJlLiIgLz4KPGxpbmsgcmVsPSJwcmVjb25uZWN0IiBocmVmPSJodHRwczovL2ZvbnRzLmdvb2dsZWFwaXMuY29tIiAvPgo8bGluayByZWw9InByZWNvbm5lY3QiIGhyZWY9Imh0dHBzOi8vZm9udHMuZ3N0YXRpYy5jb20iIGNyb3Nzb3JpZ2luIC8+CjxsaW5rIGhyZWY9Imh0dHBzOi8vZm9udHMuZ29vZ2xlYXBpcy5jb20vY3NzMj9mYW1pbHk9TW9udHNlcnJhdDp3Z2h0QDMwMDs0MDA7NTAwOzYwMDs4MDA7OTAwJmRpc3BsYXk9c3dhcCIgcmVsPSJzdHlsZXNoZWV0IiAvPgo8c3R5bGU+CiAgOnJvb3R7CiAgICAtLWJnOiMwNzBCMTI7IC0tdGV4dDojRTdFQUYwOyAtLW11dGVkOiM2RTdBOEM7IC0tc29mdDojYWFiM2MwOwogICAgLS1ibHVlOiM1QjhBRDE7IC0tYmx1ZS1icmlnaHQ6I0E5QzZGMDsgLS1pY2U6IzdGQThERTsgLS1saW5lOnJnYmEoOTEsMTM4LDIwOSwuMjIpOwogIH0KICAqe21hcmdpbjowO3BhZGRpbmc6MDtib3gtc2l6aW5nOmJvcmRlci1ib3g7fQogIGh0bWx7c2Nyb2xsLWJlaGF2aW9yOnNtb290aDt9CiAgYm9keXtiYWNrZ3JvdW5kOnZhcigtLWJnKTtjb2xvcjp2YXIoLS10ZXh0KTtmb250LWZhbWlseTonTW9udHNlcnJhdCcsc2Fucy1zZXJpZjsKICAgIGxpbmUtaGVpZ2h0OjEuNzU7LXdlYmtpdC1mb250LXNtb290aGluZzphbnRpYWxpYXNlZDt9CiAgLmJne3Bvc2l0aW9uOmZpeGVkO2luc2V0OjA7ei1pbmRleDowO3BvaW50ZXItZXZlbnRzOm5vbmU7CiAgICBiYWNrZ3JvdW5kOnJhZGlhbC1ncmFkaWVudChlbGxpcHNlIGF0IDUwJSAtMTAlLHJnYmEoOTEsMTM4LDIwOSwuMTApLHRyYW5zcGFyZW50IDU1JSk7fQogIC5ncmFpbntwb3NpdGlvbjpmaXhlZDtpbnNldDowO3otaW5kZXg6MDtwb2ludGVyLWV2ZW50czpub25lO29wYWNpdHk6LjA0O21peC1ibGVuZC1tb2RlOm92ZXJsYXk7CiAgICBiYWNrZ3JvdW5kLWltYWdlOnVybCgiZGF0YTppbWFnZS9zdmcreG1sLCUzQ3N2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxMjAnIGhlaWdodD0nMTIwJyUzRSUzQ2ZpbHRlciBpZD0nbiclM0UlM0NmZVR1cmJ1bGVuY2UgdHlwZT0nZnJhY3RhbE5vaXNlJyBiYXNlRnJlcXVlbmN5PScuOScgbnVtT2N0YXZlcz0nMicvJTNFJTNDL2ZpbHRlciUzRSUzQ3JlY3Qgd2lkdGg9JzEwMCUyNScgaGVpZ2h0PScxMDAlMjUnIGZpbHRlcj0ndXJsKCUyM24pJy8lM0UlM0Mvc3ZnJTNFIik7fQoKICAud3JhcHtwb3NpdGlvbjpyZWxhdGl2ZTt6LWluZGV4OjE7bWF4LXdpZHRoOjY4MHB4O21hcmdpbjowIGF1dG87cGFkZGluZzowIDI0cHg7fQoKICBoZWFkZXJ7ZGlzcGxheTpmbGV4O2p1c3RpZnktY29udGVudDpzcGFjZS1iZXR3ZWVuO2FsaWduLWl0ZW1zOmNlbnRlcjtwYWRkaW5nOjMwcHggMDt9CiAgaGVhZGVyIGEuYmFja3tmb250LWZhbWlseTonTW9udHNlcnJhdCcsc2Fucy1zZXJpZjtmb250LXdlaWdodDo2MDA7Zm9udC1zaXplOjEycHg7bGV0dGVyLXNwYWNpbmc6MS41cHg7Y29sb3I6dmFyKC0tbXV0ZWQpOwogICAgdGV4dC1kZWNvcmF0aW9uOm5vbmU7dGV4dC10cmFuc2Zvcm06dXBwZXJjYXNlO3RyYW5zaXRpb246Y29sb3IgLjJzO30KICBoZWFkZXIgYS5iYWNrOmhvdmVye2NvbG9yOnZhcigtLWJsdWUtYnJpZ2h0KTt9CiAgaGVhZGVyIC50YWd7Zm9udC1mYW1pbHk6J01vbnRzZXJyYXQnLHNhbnMtc2VyaWY7Zm9udC13ZWlnaHQ6NjAwO2ZvbnQtc2l6ZToxMXB4O2xldHRlci1zcGFjaW5nOjIuNXB4O2NvbG9yOnZhcigtLWJsdWUpO3RleHQtdHJhbnNmb3JtOnVwcGVyY2FzZTt9CgogIGFydGljbGV7cGFkZGluZzo0MHB4IDAgMzBweDt9CiAgLmV5ZWJyb3d7Zm9udC1mYW1pbHk6J01vbnRzZXJyYXQnLHNhbnMtc2VyaWY7Zm9udC13ZWlnaHQ6NjAwO2ZvbnQtc2l6ZToxMXB4O2xldHRlci1zcGFjaW5nOjIuNXB4O2NvbG9yOnZhcigtLW11dGVkKTsKICAgIHRleHQtdHJhbnNmb3JtOnVwcGVyY2FzZTtkaXNwbGF5OmZsZXg7YWxpZ24taXRlbXM6Y2VudGVyO2dhcDoxMHB4O21hcmdpbi1ib3R0b206MjJweDt9CiAgLmV5ZWJyb3cgLmRvdHt3aWR0aDo2cHg7aGVpZ2h0OjZweDtiYWNrZ3JvdW5kOnZhcigtLWJsdWUpO2JvcmRlci1yYWRpdXM6NTAlO2JveC1zaGFkb3c6MCAwIDEycHggdmFyKC0tYmx1ZSk7fQogIGgxe2ZvbnQtZmFtaWx5OidNb250c2VycmF0JyxzYW5zLXNlcmlmO2ZvbnQtd2VpZ2h0OjkwMDt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7CiAgICBmb250LXNpemU6Y2xhbXAoMi4xcmVtLDUuNXZ3LDMuNHJlbSk7bGluZS1oZWlnaHQ6MS4wMjtsZXR0ZXItc3BhY2luZzotLjAxZW07bWFyZ2luLWJvdHRvbToxOHB4O30KICAuYnlsaW5le2ZvbnQtZmFtaWx5OidNb250c2VycmF0JyxzYW5zLXNlcmlmO2ZvbnQtd2VpZ2h0OjYwMDtmb250LXNpemU6MTJweDtsZXR0ZXItc3BhY2luZzoxcHg7Y29sb3I6dmFyKC0tbXV0ZWQpOwogICAgdGV4dC10cmFuc2Zvcm06dXBwZXJjYXNlO3BhZGRpbmctYm90dG9tOjMwcHg7bWFyZ2luLWJvdHRvbTozNHB4O2JvcmRlci1ib3R0b206MXB4IHNvbGlkIHZhcigtLWxpbmUpO30KICAuYnlsaW5lIGJ7Y29sb3I6dmFyKC0taWNlKTtmb250LXdlaWdodDo1MDA7fQoKICBhcnRpY2xlIHB7Zm9udC1zaXplOjE3LjVweDtjb2xvcjp2YXIoLS1zb2Z0KTttYXJnaW4tYm90dG9tOjIycHg7fQogIGFydGljbGUgcC5sZWFke2ZvbnQtc2l6ZToyMHB4O2NvbG9yOnZhcigtLXRleHQpO2xpbmUtaGVpZ2h0OjEuNjt9CiAgYXJ0aWNsZSBwIHN0cm9uZ3tjb2xvcjp2YXIoLS10ZXh0KTtmb250LXdlaWdodDo2MDA7fQogIGFydGljbGUgcDpmaXJzdC1vZi10eXBlOjpmaXJzdC1sZXR0ZXJ7Zm9udC1mYW1pbHk6J01vbnRzZXJyYXQnLHNhbnMtc2VyaWY7Zm9udC13ZWlnaHQ6ODAwOwogICAgZmxvYXQ6bGVmdDtmb250LXNpemU6My40ZW07bGluZS1oZWlnaHQ6LjgyO3BhZGRpbmc6NnB4IDEycHggMCAwO2NvbG9yOnZhcigtLWJsdWUtYnJpZ2h0KTt9CgogIC5wdWxse2JvcmRlci1sZWZ0OjJweCBzb2xpZCB2YXIoLS1ibHVlKTtwYWRkaW5nOjZweCAwIDZweCAyMnB4O21hcmdpbjozMHB4IDA7CiAgICBmb250LWZhbWlseTonTW9udHNlcnJhdCcsc2Fucy1zZXJpZjtmb250LXdlaWdodDo4MDA7dGV4dC10cmFuc2Zvcm06dXBwZXJjYXNlOwogICAgZm9udC1zaXplOmNsYW1wKDEuMnJlbSwyLjZ2dywxLjU1cmVtKTtsaW5lLWhlaWdodDoxLjI7Y29sb3I6dmFyKC0tdGV4dCk7bGV0dGVyLXNwYWNpbmc6LjAxZW07fQoKICBmb290ZXJ7Ym9yZGVyLXRvcDoxcHggc29saWQgdmFyKC0tbGluZSk7bWFyZ2luLXRvcDoyMHB4O3BhZGRpbmc6MzBweCAwIDYwcHg7CiAgICBmb250LWZhbWlseTonTW9udHNlcnJhdCcsc2Fucy1zZXJpZjtmb250LXdlaWdodDo2MDA7Zm9udC1zaXplOjEycHg7bGV0dGVyLXNwYWNpbmc6MXB4O2NvbG9yOnZhcigtLW11dGVkKTsKICAgIGRpc3BsYXk6ZmxleDtqdXN0aWZ5LWNvbnRlbnQ6c3BhY2UtYmV0d2VlbjtmbGV4LXdyYXA6d3JhcDtnYXA6MTRweDt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7fQogIGZvb3RlciBhe2NvbG9yOnZhcigtLWljZSk7dGV4dC1kZWNvcmF0aW9uOm5vbmU7dHJhbnNpdGlvbjpjb2xvciAuMnM7fQogIGZvb3RlciBhOmhvdmVye2NvbG9yOnZhcigtLWJsdWUtYnJpZ2h0KTt9CgogIEBtZWRpYSAocHJlZmVycy1yZWR1Y2VkLW1vdGlvbjpyZWR1Y2Upe2h0bWx7c2Nyb2xsLWJlaGF2aW9yOmF1dG87fX0KPC9zdHlsZT4KPC9oZWFkPgo8Ym9keT4KPGRpdiBjbGFzcz0iYmciPjwvZGl2Pgo8ZGl2IGNsYXNzPSJncmFpbiI+PC9kaXY+Cgo8ZGl2IGNsYXNzPSJ3cmFwIj4KICA8aGVhZGVyPgogICAgPGEgY2xhc3M9ImJhY2siIGhyZWY9ImluZGV4Lmh0bWwiPuKGkCBMaWFtIE5pY2hlbGU8L2E+CiAgICA8c3BhbiBjbGFzcz0idGFnIj5Xcml0aW5nPC9zcGFuPgogIDwvaGVhZGVyPgoKICA8YXJ0aWNsZT4KICAgIDxkaXYgY2xhc3M9ImV5ZWJyb3ciPjxzcGFuIGNsYXNzPSJkb3QiPjwvc3Bhbj5PbiBkZWZlbmNlIHNvZnR3YXJlPC9kaXY+CiAgICA8aDE+V2hlcmUgdG8gTG9vaywgTm90IFdoZXJlIHRvIFNob290PC9oMT4KICAgIDxkaXYgY2xhc3M9ImJ5bGluZSI+TGlhbSBOaWNoZWxlICZuYnNwO8K3Jm5ic3A7IDxiPjIwMjY8L2I+ICZuYnNwO8K3Jm5ic3A7IDUgbWluIHJlYWQ8L2Rpdj4KCiAgICA8cCBjbGFzcz0ibGVhZCI+SSBidWlsZCBzb2Z0d2FyZSBmb3IgZGVmZW5jZSwgYW5kIHBlb3BsZSBzb21ldGltZXMgYXNzdW1lIHRoYXQgbWVhbnMgSSBidWlsZCB3ZWFwb25zLiBJdCBkb2Vzbid0LCBhbmQgdGhlIGRpc3RpbmN0aW9uIGlzIHRoZSB3aG9sZSBwb2ludC48L3A+CgogICAgPHA+VGhlcmUncyBhIGxpbmUgcnVubmluZyB0aHJvdWdoIG1pbGl0YXJ5IHNvZnR3YXJlIHRoYXQgZG9lc24ndCBnZXQgdGFsa2VkIGFib3V0IGVub3VnaC4gT24gb25lIHNpZGUgaXMgdW5kZXJzdGFuZGluZzogd29ya2luZyBvdXQgd2hhdCdzIGluIGEgcGxhY2UsIHdoYXQncyB0aGVyZSBub3cgdGhhdCB3YXNuJ3QgeWVzdGVyZGF5LCB3aGF0IGEgcGlsZSBvZiBzZW5zb3IgZGF0YSBhY3R1YWxseSBtZWFucy4gT24gdGhlIG90aGVyIHNpZGUgaXMgYWN0aW9uOiBkZWNpZGluZyB3aGF0IHRvIGRvIGFib3V0IGl0LCBhbmQgaW5jcmVhc2luZ2x5LCBkZWNpZGluZyBhdXRvbWF0aWNhbGx5LiBNb3N0IG9mIHRoZSBpbnRlcmVzdGluZywgZ2VudWluZWx5IG1vZGVybmlzaW5nIHdvcmsgc2l0cyBvbiB0aGUgdW5kZXJzdGFuZGluZyBzaWRlLiBNb3N0IG9mIHRoZSByaXNrIHNpdHMgb24gdGhlIG90aGVyLjwvcD4KCiAgICA8cD5XaGVuIEkgYnVpbHQgVkFOVEFHRSwgSSB3cm90ZSB0aGUgYm91bmRhcnkgaW50byB0aGUgUkVBRE1FIGJlZm9yZSBJIHdyb3RlIGhhbGYgdGhlIGZlYXR1cmVzLiBJdCByZXBvcnRzIHdoYXQncyBwcmVzZW50IGFuZCB3aGF0IGNoYW5nZWQgaW4gb3ZlcmhlYWQgaW1hZ2VyeSwgYW5kIG5vdGhpbmcgcGFzdCB0aGF0LiBObyB0YXJnZXRpbmcsIG5vIGZpcmUtY29udHJvbCwgbm8gc3RyaWtlIHBsYW5uaW5nLCBubyBzZW5zb3ItdG8tc2hvb3RlciBhdXRvbWF0aW9uLiBJIGdldCB3aHkgdGhhdCBtaWdodCByZWFkIGFzIGEgZGlzY2xhaW1lci4gSXQgaXNuJ3QuIEl0J3MgYSBkZXNpZ24gZGVjaXNpb24sIGFuZCBpdCBjaGFuZ2VkIHdoYXQgSSBidWlsdC48L3A+CgogICAgPHA+VGhlIGluc3RpbmN0IGJlaGluZCB0aGF0IGJvdW5kYXJ5IGNvbWVzIGZyb20gaG93IEkgYWN0dWFsbHkgd29yaywgbm90IGZyb20gYSB2YWx1ZXMgc3RhdGVtZW50IEkgYm9sdGVkIG9uIGFmdGVyd2FyZC4gTXkgc3Ryb25nZXN0IHNraWxsIGlzbid0IGFueSBvbmUgbGFuZ3VhZ2Ugb3IgZnJhbWV3b3JrLCBpdCdzIGRhdGEgc2NpZW5jZTogdGFraW5nIGEgcm91Z2gsIGhhbGYtZm9ybWVkIGlkZWEgbm9ib2R5J3MgYnVpbHQgY2xlYW5seSB5ZXQgYW5kIHR1cm5pbmcgaXQgaW50byBhIHN5c3RlbSB0aGF0IGhvbGRzIHVwLiBJIGxpa2UgYnVpbGRpbmcgYXJvdW5kIGlkZWFzIHRoYXQgZG9uJ3QgYWxyZWFkeSBoYXZlIGFuIG9mZi10aGUtc2hlbGYgYW5zd2VyLCBhbmQgdGhhdCBoYWJpdCBjb21lcyB3aXRoIGEgY29zdCwgd2hpY2ggaXMgdGhhdCBJIGRvbid0IHRydXN0IGFueXRoaW5nIEkgYnVpbGQgdW50aWwgSSd2ZSB0cmllZCBoYXJkIHRvIGJyZWFrIGl0LiBTdHJlc3MgdGVzdGluZyBhdGUgbW9yZSBob3VycyBvbiBWQU5UQUdFIHRoYW4gdGhlIG9yaWdpbmFsIGJ1aWxkIGRpZC4gRmVlZCBpdCBhIGNsb3VkeSBzY2VuZS4gRmVlZCBpdCBhIHNoYWRvdyB0aGF0IGxvb2tzIGxpa2UgYSBodWxsIGF0IGxvdyB0aWRlLiBUdXJuIHRoZSBkZXRlY3Rpb24gdGhyZXNob2xkIGRvd24gdW50aWwgaXQgc3RhcnRzIGd1ZXNzaW5nIGF0IHRoaW5ncyB0aGF0IGFyZW4ndCB0aGVyZS4gWW91IGxlYXJuIHdoYXQgYSBzeXN0ZW0gYWN0dWFsbHkgZG9lcyB1bmRlciBwcmVzc3VyZSwgbm90IHdoYXQgaXQgZG9lcyBpbiB0aGUgZGVtby48L3A+CgogICAgPHA+VGhhdCBoYWJpdCBpcyBleGFjdGx5IHdoeSB0aGUgdHdvIGxheWVycyBjYW4ndCBiZSB0cmVhdGVkIHRoZSBzYW1lLiBXaGVuIGEgc3lzdGVtJ3Mgam9iIGlzIHRvIGhlbHAgc29tZW9uZSB1bmRlcnN0YW5kIGEgc2l0dWF0aW9uLCB5b3UgY2FuIHB1c2ggaXQgdW50aWwgaXQgYnJlYWtzIGFuZCB3YWxrIGF3YXkgd2l0aCBzb21ldGhpbmcgdXNlZnVsLiBOb3cgeW91IGtub3cgaXQgZ29lcyBxdWlldCBvbiBoYXp5IGltYWdlcnksIG9yIGZsYWdzIGEgc2hpcHBpbmcgY29udGFpbmVyIGFzIGEgdmVzc2VsLCBhbmQgeW91IGRlc2lnbiBhcm91bmQgdGhhdC4gQSBjaGFuZ2UtZGV0ZWN0aW9uIHJlc3VsdCB0aGF0IHNheXMgc29tZXRoaW5nIG1vdmVkIGhlcmUsIGdvIGxvb2ssIGlzIHN0aWxsIHdvcnRoIGhhdmluZyBldmVuIHdoZW4gaXQncyB3cm9uZyBzb21ldGltZXMsIGJlY2F1c2UgYSBwZXJzb24gY2hlY2tzIGl0IGJlZm9yZSBhbnl0aGluZyBoYXBwZW5zLiBSdW4gdGhlIHNhbWUgc3RyZXNzIHRlc3Qgb24gYSBzeXN0ZW0gYnVpbHQgdG8gaGVscCBkZWNpZGUgYSBzdHJpa2UsIGFuZCBldmVyeSBlZGdlIGNhc2UgeW91IGZpbmQgc3RvcHMgYmVpbmcgYSBsaW5lIGluIGEgdGVzdCByZXBvcnQuIEl0IGJlY29tZXMgYSB3YXkgcGVvcGxlIGNvdWxkIGRpZS4gVGhlIGZhbHNlIHBvc2l0aXZlIHRoYXQgY29zdHMgYW4gYW5hbHlzdCB0d28gbWludXRlcyB3YWxraW5nIG92ZXIgdG8gY2hlY2sgYSBzY3JlZW4gY29zdHMgc29tZXRoaW5nIGVsc2UgZW50aXJlbHkgdGhyZWUgc3RlcHMgZG93bnN0cmVhbS4gU2FtZSBraW5kIG9mIGJ1Zy4gTm93aGVyZSBuZWFyIHRoZSBzYW1lIHdlaWdodC48L3A+CgogICAgPGRpdiBjbGFzcz0icHVsbCI+VGhlIGhhcmRlc3QgcXVlc3Rpb24gaXNuJ3QgdGVjaG5pY2FsLiBJdCdzIHdoZXJlIHRoZSBodW1hbiBzdGF5cyBpbiB0aGUgbG9vcC48L2Rpdj4KCiAgICA8cD5JJ20gbm90IHNxdWVhbWlzaCBhYm91dCBkZWZlbmNlLiBJIHRoaW5rIGEgc2VyaW91cywgY2FwYWJsZSwgbW9kZXJuIG1pbGl0YXJ5IGlzIHNvbWV0aGluZyBteSBjb250aW5lbnQgbmVlZHMgYW5kIG1vc3RseSBkb2Vzbid0IGhhdmUgaW4gc29mdHdhcmUgdGVybXMuIEEgbG90IG9mIHdoYXQgcnVucyB0b2RheSBpcyBzbG93LCBvbGQsIGFuZCB5ZWFycyBiZWhpbmQgdGhlIHRvb2xzIGl0IHNob3VsZCBiZSwgYW5kIEkgd2FudCB0byBzcGVuZCBteSBjYXJlZXIgY2hhbmdpbmcgdGhhdC4gVGhhdCBpbmNsdWRlcyBoYXJkLWVkZ2VkIHdvcmsuIFdoYXQgSSB3b24ndCBkbyBpcyBwcmV0ZW5kIHRoZSBoYXJkZXN0IHF1ZXN0aW9uIGhlcmUgaXMgYSB0ZWNobmljYWwgb25lLiBJdCdzIHdoZXJlIHRoZSBodW1hbiBzdGF5cyBpbiB0aGUgbG9vcCwgYW5kIEkgdGhpbmsgdGhlIGFuc3dlciBpcyBzaW1wbGU6IG9uIGFueSBkZWNpc2lvbiB0aGF0IGVuZHMgYSBsaWZlLjwvcD4KCiAgICA8cD5UaGF0J3Mgbm90IGEgZmFzaGlvbmFibGUgcG9zaXRpb24gaW4gYSBmaWVsZCB0aGF0IGtlZXBzIHVzaW5nIHRoZSB3b3JkICJhdXRvbm9teSIgbGlrZSBpdCdzIG9idmlvdXNseSBnb29kLiBBdXRvbm9teSBpcyBncmVhdCBmb3IgYSBsb3Qgb2YgdGhpbmdzLiBJdCdzIGdyZWF0IGZvciBwdWxsaW5nIGltYWdlcnksIHRpbGluZyBpdCwgcnVubmluZyBkZXRlY3Rpb24sIHdhdGNoaW5nIGFuIGFyZWEgc28gYSBwZXJzb24gZG9lc24ndCBoYXZlIHRvIHNpdCBhbmQgc3RhcmUgYXQgYSBzY3JlZW4uIEl0IGlzIG5vdCBzb21ldGhpbmcgSSB3YW50IGFueXdoZXJlIG5lYXIgdGhlIHRyaWdnZXIsIGFuZCAidGhlIGVuZW15IHdpbGwgZG8gaXQsIHNvIHdlIGhhdmUgdG8iIGlzbid0IGEgZ29vZCBlbm91Z2ggcmVhc29uIHRvIGhhbmQgdGhhdCBkZWNpc2lvbiB0byBhIG1vZGVsIEkndmUgc3RyZXNzIHRlc3RlZCBhbmQgc3RpbGwgY2FuJ3QgZnVsbHkgdHJ1c3QuPC9wPgoKICAgIDxwPlNvIHRoZSBzb2Z0d2FyZSBJIHdhbnQgdG8gYnVpbGQgaXMgdGhlIHVuZGVyc3RhbmRpbmcgbGF5ZXI6IHRoZSBwYXJ0IHRoYXQgdGFrZXMgYSBmbG9vZCBvZiByYXcgc2lnbmFsIGFuZCBoYW5kcyBhIHBlcnNvbiBzb21ldGhpbmcgY2xlYXIgZW5vdWdoIHRvIGFjdCBvbiwgZmFzdCBlbm91Z2ggdG8gbWF0dGVyLCBhbmQgaG9uZXN0IGFib3V0IGl0cyBvd24gY29uZmlkZW5jZSByYXRoZXIgdGhhbiBwcmV0ZW5kaW5nIGl0IGRvZXNuJ3QgaGF2ZSBhbnkuIFRoYXQncyB0aGUgbGF5ZXIgSSB3YW50IHRvIHNwZW5kIGEgY2FyZWVyIG9uLiBJdCdzIGJpZ2dlciB0aGFuIG1vc3QgcGVvcGxlIHRoaW5rLCBhbmQgbW9zdCBvZiB3aGF0IGFscmVhZHkgZXhpc3RzIGlzIHdvcnNlIHRoYW4gaXQgc2hvdWxkIGJlLiBUaGUgdGFyZ2V0aW5nIGxheWVyIGNhbiB3YWl0IGZvciBhIGhhcmRlciBjb252ZXJzYXRpb24gdGhhbiBhIHBvcnRmb2xpby48L3A+CgogICAgPHA+SWYgeW91J3JlIGhpcmluZyBmb3IgdGhpcyBraW5kIG9mIHdvcmsgYW5kIHRoaXMgcmVhZHMgYXMgbmFpdmUgdG8geW91LCB3ZSdyZSBwcm9iYWJseSBub3QgdGhlIHJpZ2h0IGZpdC4gSWYgaXQgcmVhZHMgYXMgcmlnaHQsIG9yIGF0IGxlYXN0IHdvcnRoIGEgbG9uZ2VyIGNvbnZlcnNhdGlvbiwgZ2V0IGluIHRvdWNoLjwvcD4KICA8L2FydGljbGU+CgogIDxmb290ZXI+CiAgICA8c3Bhbj5MaWFtIE5pY2hlbGUgwrcgRGVmZW5jZSBTb2Z0d2FyZTwvc3Bhbj4KICAgIDxzcGFuPjxhIGhyZWY9Im1haWx0bzpsaWFtbmljaGVsZUBpY2xvdWQuY29tIj5saWFtbmljaGVsZUBpY2xvdWQuY29tPC9hPiDCtyA8YSBocmVmPSJodHRwczovL2dpdGh1Yi5jb20vaWtlcnNjb2RlIiB0YXJnZXQ9Il9ibGFuayIgcmVsPSJub29wZW5lciI+Z2l0aHViLmNvbS9pa2Vyc2NvZGU8L2E+PC9zcGFuPgogIDwvZm9vdGVyPgo8L2Rpdj4KPC9ib2R5Pgo8L2h0bWw+Cg==";
   function openEssay(e){
     if(e) e.preventDefault();
     var bin = atob(ESSAY_B64);
