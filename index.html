@@ -193,7 +193,7 @@
   .shots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0;}
   .shot{margin:0;}
   .shot .ph{aspect-ratio:4/3;border:1px dashed var(--line);display:grid;place-items:center;font-family:'Montserrat',sans-serif;font-weight:600;font-size:9.5px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;background:rgba(91,138,209,.05);text-align:center;padding:6px;}
-  .shot img{width:100%;height:auto;display:block;border:1px solid var(--line);}
+  .shot img{width:100%;aspect-ratio:5/4;object-fit:cover;display:block;border:1px solid var(--line);}
   .shot figcaption{font-family:'Montserrat',sans-serif;font-weight:600;font-size:9px;letter-spacing:.5px;color:var(--muted);margin-top:6px;text-transform:uppercase;}
   .calls{list-style:none;margin:2px 0 0;padding:0;}
   .calls li{position:relative;padding-left:18px;margin-bottom:10px;color:var(--body);font-size:14px;line-height:1.55;}
@@ -671,9 +671,9 @@
 
       <!-- Swap each .ph block for <img src="screenshots/your-shot.png" alt="..."> once you have captures -->
       <div class="shots">
-        <figure class="shot"><img src="assets/aoi-souda-bay.webp" width="1280" height="800" loading="lazy" decoding="async" alt="Drawing an area of interest over Sentinel-2 imagery of Souda Bay"><figcaption>Draw an AOI over Sentinel-2 imagery</figcaption></figure>
-        <figure class="shot"><img src="assets/change-detection.webp" width="1280" height="800" loading="lazy" decoding="async" alt="Change detection result, 2.5 percent of the area changed"><figcaption>Change detection · 2.5% changed</figcaption></figure>
-        <figure class="shot"><img src="assets/vessel-detection.webp" width="1280" height="800" loading="lazy" decoding="async" alt="Vessel detection selected at 0.97 confidence"><figcaption>Vessel detection · 0.97 confidence</figcaption></figure>
+        <figure class="shot"><img src="assets/aoi-souda-bay.webp" width="1200" height="960" loading="lazy" decoding="async" alt="Drawing an area of interest over Sentinel-2 imagery of Souda Bay"><figcaption>Draw an AOI over Sentinel-2 imagery</figcaption></figure>
+        <figure class="shot"><img src="assets/change-detection.webp" width="1200" height="960" loading="lazy" decoding="async" alt="Change detection result, 2.5 percent of the area changed"><figcaption>Change detection · 2.5% changed</figcaption></figure>
+        <figure class="shot"><img src="assets/vessel-detection.webp" width="1200" height="960" loading="lazy" decoding="async" alt="Vessel detection selected at 0.97 confidence"><figcaption>Vessel detection · 0.97 confidence</figcaption></figure>
       </div>
 
       <div class="pipe-label">A few calls I made</div>
