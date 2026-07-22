@@ -26,12 +26,11 @@
     background:
       radial-gradient(ellipse at 50% 30%,rgba(91,138,209,.06),transparent 60%),
       var(--bg);}
-  /* Pan/zoom is applied with CSS transforms on wrappers so the SVG rasterizes
-     once and the GPU compositor moves it — never per-frame vector repaints. */
-  #zoomA{position:absolute;inset:0;transform-origin:0 0;will-change:transform;}
-  #zoomB{position:absolute;inset:0;animation:breathe 11s ease-in-out infinite alternate;}
-  #par{position:absolute;inset:0;will-change:transform;}
-  @keyframes breathe{from{transform:scale(1);}to{transform:scale(1.018);}}
+  /* Discrete section states: entering a section triggers ONE compositor-animated
+     CSS transition to that view. Nothing runs between section changes, so the
+     browser rasterizes the sheet once per state and idles at 0% CPU/GPU. */
+  #zoomA{position:absolute;inset:0;transform-origin:0 0;
+    transition:transform 1300ms cubic-bezier(.22,1,.36,1);}
   #sheet svg{position:absolute;inset:0;width:100%;height:100%;display:block;}
   #sheet text{font-family:'Montserrat',sans-serif;}
   .vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
@@ -40,11 +39,11 @@
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
 
   /* drawing linework */
-  .dwg-line{stroke:var(--ink);stroke-width:1.4;fill:none;vector-effect:non-scaling-stroke;}
-  .dwg-thin{stroke:var(--ink-dim);stroke-width:1;fill:none;vector-effect:non-scaling-stroke;}
-  .dwg-faint{stroke:var(--ink-faint);stroke-width:1;fill:none;vector-effect:non-scaling-stroke;}
-  .dwg-center{stroke:var(--ink-dim);stroke-width:1;fill:none;stroke-dasharray:22 6 4 6;vector-effect:non-scaling-stroke;}
-  .dwg-dim{stroke:var(--ink-dim);stroke-width:1;fill:none;vector-effect:non-scaling-stroke;}
+  .dwg-line{stroke:var(--ink);stroke-width:1.4;fill:none;}
+  .dwg-thin{stroke:var(--ink-dim);stroke-width:1;fill:none;}
+  .dwg-faint{stroke:var(--ink-faint);stroke-width:1;fill:none;}
+  .dwg-center{stroke:var(--ink-dim);stroke-width:1;fill:none;stroke-dasharray:22 6 4 6;}
+  .dwg-dim{stroke:var(--ink-dim);stroke-width:1;fill:none;}
   .dwg-fill{fill:rgba(91,138,209,.05);}
   .dwg-fill-dark{fill:rgba(14,20,32,.7);}
   .dwg-glass{fill:rgba(4,6,11,.9);}
@@ -54,12 +53,12 @@
   .t-block-b{fill:var(--blue-bright);font-weight:800;letter-spacing:.14em;text-transform:uppercase;}
 
   /* datasheet callouts drawn on the sheet — same labels & data as the original */
-  .callout .co-line{stroke:var(--blue);stroke-width:1;vector-effect:non-scaling-stroke;}
+  .callout .co-line{stroke:var(--blue);stroke-width:1;}
   .callout .co-dot{fill:var(--blue-bright);}
-  .callout .co-box{fill:rgba(12,17,26,.78);stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke;}
+  .callout .co-box{fill:rgba(12,17,26,.78);stroke:var(--line);stroke-width:1;}
   .callout .co-obj{fill:var(--muted);font-size:8.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;}
   .callout .co-title{fill:var(--blue);font-size:10.5px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;}
-  .callout .co-rule{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke;}
+  .callout .co-rule{stroke:var(--line);stroke-width:1;}
   .callout .co-k{fill:var(--muted);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
   .callout .co-v{fill:var(--blue-bright);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
   .callout{opacity:.28;transition:opacity .5s ease;}
@@ -97,7 +96,7 @@
   section.sec .panel,.identity{pointer-events:auto;}
   .align-l{justify-content:flex-start;} .align-r{justify-content:flex-end;} .align-c{justify-content:center;}
 
-  .panel{max-width:440px;background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  .panel{max-width:440px;background:rgba(10,15,24,.90);
     border:1px solid var(--line);padding:clamp(26px,3vw,40px);
     opacity:0;transform:translateY(26px);transition:opacity .8s ease,transform .8s ease;}
   .panel.in{opacity:1;transform:translateY(0);}
@@ -224,7 +223,7 @@
 
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto;} .eyebrow .dot,.cue svg{animation:none;}
-    #zoomB{animation:none;}
+    #zoomA{transition:none;}
     .panel,h1.name .char,.role,.eyebrow,.cue{transition:none;}
   }
 </style>
@@ -239,7 +238,7 @@
      the original (verified public specs: ESA / eoPortal / SentiWiki).
      ====================================================================== -->
 <div id="sheet" aria-hidden="true">
-<div id="zoomA"><div id="zoomB"><div id="par">
+<div id="zoomA">
 <svg id="dwg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <pattern id="gridS" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -558,7 +557,7 @@
     </g>
   </g>
 </svg>
-</div></div></div>
+</div>
 </div>
 <div class="vignette"></div>
 <div class="grain"></div>
@@ -730,17 +729,18 @@
   var REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* =====================================================================
-     DRAWING RIG — 2D replacement for the 3D camera.
-     Same section keyframes idea: each section focuses a sub-component of
-     the Sentinel-2 engineering drawing (pan + zoom on the #rig group),
-     interpolated continuously with the scroll position, with the same
-     easing, smoothing, breathing dolly and mouse parallax as before.
+     DRAWING RIG — discrete section states.
+     Each section of the page has a matching view of the Sentinel-2 sheet
+     (pan + zoom focused on the sub-component that section discusses). When
+     the active section changes, ONE CSS transform transition glides the
+     drawing to that view on the compositor. Between changes: zero work.
      ===================================================================== */
-  var VBW = 1600, VBH = 1000;
+  var zoomA=document.getElementById('zoomA');
+  var VBW=1600, VBH=1000;
 
-  // keyframes: f = focus point in sheet coords, s = zoom, a = screen anchor (fractions)
-  var KF = [
-    {f:[740,510], s:0.92, a:[0.62,0.50]},  // 0 hero: whole sheet, drawing right of the name
+  // per-section view: f = focus point in sheet coords, s = zoom, a = screen anchor
+  var KF=[
+    {f:[740,510], s:0.92, a:[0.62,0.50]},  // 0 hero: whole sheet
     {f:[1002,520],s:1.55, a:[0.66,0.46]},  // 1 work: solar array
     {f:[578,700], s:1.70, a:[0.74,0.52]},  // 2 case: instrument over nadir
     {f:[700,745], s:2.20, a:[0.32,0.50]},  // 3 vision: MSI aperture (tight)
@@ -754,30 +754,23 @@
   // one callout lit per section — identical mapping to the original spec panels
   var coIds=['co-platform','co-array','co-mission','co-msi','co-bus','co-xband',null];
 
-  function easeInOut(t){return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
-  var desired={x:KF[0].f[0],y:KF[0].f[1],s:KF[0].s,ax:KF[0].a[0],ay:KF[0].a[1]};
-
-  var mAim={x:0,y:0};
-  if(!REDUCE)addEventListener('pointermove',function(e){
-    mAim.x=e.clientX/innerWidth-0.5;mAim.y=e.clientY/innerHeight-0.5;});
-
   var FIT=1; function setFit(){var a=innerWidth/innerHeight; FIT=a>=1.2?1:(a>=0.85?0.82:0.66);}
   setFit();
-  var activeSec=0;
-  function computeScroll(){
-    var mid=scrollY+innerHeight*0.5, idx=0, k;
-    for(k=0;k<secEls.length;k++){ if(secEls[k].getBoundingClientRect().top+scrollY<=mid) idx=k; }
-    var r=secEls[idx].getBoundingClientRect();
-    var top=r.top+scrollY, bottom=r.bottom+scrollY;
-    var t=easeInOut(Math.min(Math.max((mid-top)/Math.max(1,bottom-top),0),1));
-    var j=Math.min(idx+1,KF.length-1);
-    var A=KF[idx],B=KF[j];
-    desired.x=A.f[0]+(B.f[0]-A.f[0])*t;
-    desired.y=A.f[1]+(B.f[1]-A.f[1])*t;
-    desired.s=A.s+(B.s-A.s)*t;
-    desired.ax=A.a[0]+(B.a[0]-A.a[0])*t;
-    desired.ay=A.a[1]+(B.a[1]-A.a[1])*t;
-    if(idx!==activeSec){activeSec=idx;updateActive();}
+
+  function applyView(idx){
+    var K=KF[idx];
+    var cover=Math.max(innerWidth/VBW,innerHeight/VBH);
+    var offX=(VBW-innerWidth/cover)/2, offY=(VBH-innerHeight/cover)/2;
+    var sc=Math.max(0.2,K.s*FIT);
+    var tx=K.a[0]*innerWidth - sc*(K.f[0]-offX)*cover;
+    var ty=K.a[1]*innerHeight - sc*(K.f[1]-offY)*cover;
+    zoomA.style.transform='translate3d('+tx.toFixed(1)+'px,'+ty.toFixed(1)+'px,0) scale('+sc.toFixed(4)+')';
+  }
+
+  // section detection: offsets cached at load/resize — no layout reads on scroll
+  var tops=[], activeSec=-1;
+  function measure(){
+    tops=secEls.map(function(el){var t=0,n=el;while(n){t+=n.offsetTop;n=n.offsetParent;}return t;});
   }
   function updateActive(){
     document.querySelectorAll('.ticker button').forEach(function(b,idx){b.classList.toggle('on',idx===activeSec);});
@@ -788,11 +781,23 @@
     // Annex B (tasking code) lights on the full-sheet views: hero + contact
     if(activeSec===0||activeSec===6) document.getElementById('co-code').classList.add('on');
   }
-  addEventListener('scroll',computeScroll,{passive:true});
+  var ticking=false;
+  function onScroll(){
+    if(ticking) return; ticking=true;
+    requestAnimationFrame(function(){
+      ticking=false;
+      var mid=scrollY+innerHeight*0.5, idx=0, k;
+      for(k=0;k<tops.length;k++){ if(tops[k]<=mid) idx=k; }
+      if(idx!==activeSec){ activeSec=idx; updateActive(); applyView(idx); }
+    });
+  }
+  addEventListener('scroll',onScroll,{passive:true});
+  addEventListener('resize',function(){setFit();measure();applyView(Math.max(0,activeSec));});
 
   /* ticker + nav clicks */
+  var REDUCE_SB=REDUCE;
   document.querySelectorAll('.ticker button').forEach(function(b){b.addEventListener('click',function(){
-    document.getElementById(b.dataset.go).scrollIntoView({behavior:REDUCE?'auto':'smooth'});});});
+    document.getElementById(b.dataset.go).scrollIntoView({behavior:REDUCE_SB?'auto':'smooth'});});});
 
   /* ---------- reveal panels ---------- */
   var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('in');});},{threshold:0.25});
@@ -805,46 +810,7 @@
     return '<span class="word">'+chars+'</span>';
   }).join(' ');
 
-  /* ---------- render loop ----------
-     Writes CSS transforms only (GPU compositor). The loop parks itself once
-     the rig settles and the pointer is still, so the browser re-rasterizes
-     the sheet sharp at rest and burns zero CPU between interactions. */
-  var zoomA=document.getElementById('zoomA');
-  var par=document.getElementById('par');
-  var cur=null, running=false, rafId=0;
-  function targetTransform(){
-    var cover=Math.max(innerWidth/VBW,innerHeight/VBH);
-    var visW=innerWidth/cover, visH=innerHeight/cover;
-    var offX=(VBW-visW)/2, offY=(VBH-visH)/2;
-    var s=Math.max(0.2,desired.s*FIT);
-    // sheet point → screen px at identity: (p-off)*cover; solve translate so
-    // the focus point lands on the screen anchor at zoom s.
-    return {
-      s:s,
-      tx:desired.ax*innerWidth - s*(desired.x-offX)*cover,
-      ty:desired.ay*innerHeight - s*(desired.y-offY)*cover
-    };
-  }
-  function frame(){
-    var t=targetTransform();
-    if(!cur) cur={tx:t.tx,ty:t.ty,s:t.s,mx:0,my:0};
-    var L=REDUCE?1:0.08;
-    cur.tx+=(t.tx-cur.tx)*L; cur.ty+=(t.ty-cur.ty)*L; cur.s+=(t.s-cur.s)*L;
-    cur.mx+=(mAim.x-cur.mx)*0.05; cur.my+=(mAim.y-cur.my)*0.05;
-    zoomA.style.transform='translate3d('+cur.tx+'px,'+cur.ty+'px,0) scale('+cur.s+')';
-    if(!REDUCE) par.style.transform='translate3d('+(cur.mx*-26/cur.s)+'px,'+(cur.my*-16/cur.s)+'px,0)';
-    var settled=Math.abs(t.tx-cur.tx)<0.4 && Math.abs(t.ty-cur.ty)<0.4 &&
-                Math.abs(t.s-cur.s)<0.002 &&
-                Math.abs(mAim.x-cur.mx)<0.002 && Math.abs(mAim.y-cur.my)<0.002;
-    if(settled){ running=false; return; }
-    rafId=requestAnimationFrame(frame);
-  }
-  function wake(){ if(!running){ running=true; rafId=requestAnimationFrame(frame); } }
-  addEventListener('scroll',wake,{passive:true});
-  addEventListener('pointermove',wake,{passive:true});
-  wake(); computeScroll(); updateActive();
-
-  addEventListener('resize',function(){setFit();computeScroll();wake();});
+  measure(); onScroll(); if(activeSec<0){activeSec=0;updateActive();applyView(0);}
 
   // ---------- telemetry line: live UTC clock + session elapsed ----------
   var teleEl=document.getElementById('tele');
