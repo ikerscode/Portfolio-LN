@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#070B12" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self';" />
 <title>Liam Nichele | Defence &amp; National Security Software</title>
@@ -45,7 +45,7 @@
   /* Discrete section states: entering a section triggers ONE compositor-animated
      CSS transition to that view. Nothing runs between section changes, so the
      browser rasterizes the sheet once per state and idles at 0% CPU/GPU. */
-  #zoomA{position:absolute;inset:0;transform-origin:0 0;
+  #zoomA{position:absolute;inset:0;transform-origin:0 0;will-change:transform;
     transition:transform 1300ms cubic-bezier(.22,1,.36,1);}
   #sheet svg{position:absolute;inset:0;width:100%;height:100%;display:block;}
   #sheet text{font-family:'Montserrat',sans-serif;}
@@ -216,15 +216,12 @@
   }
 
   @media (max-width:640px){
-    header{padding:0 18px;flex-direction:column;align-items:stretch;gap:0;}
-    .brand{font-size:10px;padding:12px 0 2px;text-shadow:0 1px 6px rgba(7,11,18,.9);}
-    nav{flex-wrap:nowrap;justify-content:flex-start;gap:16px;overflow-x:auto;
-      -webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 0 6px;}
-    nav::-webkit-scrollbar{display:none;}
-    nav a{font-size:10px;letter-spacing:1px;padding:5px 0;flex:0 0 auto;
-      text-shadow:0 1px 6px rgba(7,11,18,.9);}
+    header{padding:14px 16px;}
+    nav{gap:4px 12px;}
+    nav a{font-size:10px;letter-spacing:1px;padding:6px 0;text-shadow:0 1px 6px rgba(7,11,18,.9);}
     nav a .idx{display:none;}
-    section.sec{padding:104px clamp(18px,6vw,40px) 64px;}
+    .brand{font-size:10px;text-shadow:0 1px 6px rgba(7,11,18,.9);}
+    section.sec{padding:112px clamp(18px,6vw,40px) 64px;}
     .panel{padding:22px 18px;}
     .pipe{flex-wrap:wrap;gap:7px;}
     .pipe .stage{flex:1 1 calc(50% - 7px);min-width:calc(50% - 7px);}
@@ -861,7 +858,9 @@
     teleEl.innerHTML='UTC <b>'+utc+'</b>&nbsp;&nbsp;·&nbsp;&nbsp;SESSION T+ <b>'+t+'</b>';
     teleEl.style.opacity=1;
   }
-  updateTele(); setInterval(updateTele, 1000);
+  var teleMQ = window.matchMedia('(max-width:900px)');
+  function teleTick(){ if(!teleMQ.matches) updateTele(); }
+  teleTick(); setInterval(teleTick, 1000);
 
   /* ---------- intro ---------- */
   var loader=document.getElementById('loader');
